@@ -4,8 +4,12 @@ import re
 import time
 import unicodedata
 import spotipy
+import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
+import html
+import json
+from datetime import datetime
 
 # Load environment variables (Client ID, Secret, Redirect URI)
 load_dotenv()
@@ -28,7 +32,7 @@ GENRE_ROUTING_DICT = {
     "Reggae": ["Reggae", "Modern Reggae", "Reggae Rock", "Indie Reggae", "West Coast Reggae"],
     "Israeli Music": ["Israeli Music", "Israeli Pop", "Israeli Indie", "Indie IL"],
     "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "Rendb", "RB", "Meditation", "Chill Indie", "Spacial Intro", "Electro Chil", "Indie Modern Funk"],
-    "Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "Mix Gener", "Mix", "Groove Metal"],
+    "Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "Mix Gener", "Mix", "Groove Metal", "House Techno"],
     "Hip Hop, Rap": ["Hip Hop", "Rap", "Hip Hop, Rap", "Rap, Hip Hop", "UG Hip Hop", "Underground Hip Hop", "UG Hip Pop", "Trap", "Dark Trap", "Latin Trap", "Bass Trap", "Hip Pop", "East Coast Hip Hop", "Multigenre Rap", "Dfw Rap", "London Rap", "Westcoast Rap", "West Coast Rap", "Drift Phonk", "Hip Hop Rap", "Hip Pop / Trap"],
     "Afrobeats": ["Afrobeats", "Afrobeat", "Dancehall", "Kenyan Drill"],
     "Mizrahi": ["Mizrahi", "Mizrachi", "Yemeni Diwan"],
@@ -62,34 +66,48 @@ for target, genres in GENRE_ROUTING_DICT.items():
 
 @st.cache_data(show_spinner=False)
 def parse_description(description):
-    """Parses description to extract ordered genres and track counts using flexible regex."""
     if not description:
         return []
-    
-    # 1. Normalize unicode (fraktur/italic letters to ASCII, superscript to numbers)
-    text = unicodedata.normalize('NFKC', description)
-    
-    # 2. Extract just the genre section (usually bounded by | symbols or newlines)
-    if '|' in text:
-        parts = text.split('|')
-        target_part = parts[0]
-        # Find the part that looks most like a genre list
-        for part in parts:
-            if '♩' in part or any(str(i) in part for i in range(10)):
-                target_part = part
-                break
-        text = target_part
         
-    # 3. Dynamic Regex Extraction
-    parsed = []
-    # Match words/symbols for genre, followed by optional spaces and then digits
-    matches = re.findall(r'([A-Za-z \-\/\,&]+?)\s*([\d]+)', text)
+    description = html.unescape(description)
+    desc = unicodedata.normalize('NFKC', description)
     
-    for genre_str, count_str in matches:
-        clean_genre = genre_str.strip(', /|♩ ')
-        if clean_genre:
-            parsed.append({"genre": clean_genre, "count": int(count_str)})
+    # BULLETPROOF CLEANING: Surgically remove the date prefix and "Created by" suffix
+    # This strips everything up to and including 'Releases' (and an optional pipe)
+    desc = re.sub(r'(?i)^.*?releases\s*\|?\s*', '', desc)
+    # This strips 'Created by...' or 'Create by...' and an optional pipe
+    desc = re.sub(r'(?i)\s*\|?\s*create[d]? by.*$', '', desc)
+    
+    genres_part = desc.strip()
+    if not genres_part:
+        return []
+
+    parsed = []
+    
+    if '♩' in genres_part:
+        segments = genres_part.split('♩')
+        for seg in segments:
+            seg = seg.strip(' .,')
+            if not seg: continue
             
+            m = re.search(r'^(.*?)\s*(\d+)?$', seg)
+            if m:
+                genre = m.group(1).strip(' .,/')
+                count = m.group(2)
+                # Strict Safeguard: If no count is specified, fail safely by skipping the playlist
+                if not count: return None 
+                parsed.append({"genre": genre, "count": int(count)})
+    else:
+        # No music note delimiter; split by digits
+        has_numbers = bool(re.search(r'\d', genres_part))
+        if has_numbers:
+            matches = re.findall(r'([^\d]+)(\d+)', genres_part)
+            for g, c in matches:
+                parsed.append({"genre": g.strip(' .,/'), "count": int(c)})
+        else:
+            # Strict Safeguard: No numbers and no notes found
+            return None 
+                
     return parsed
 
 def get_all_user_playlists(sp):
@@ -226,7 +244,9 @@ def load_target_existing_uris(_sp):
 
 # Sidebar status
 st.sidebar.header("Status")
-
+if st.sidebar.button("🔄 Refresh Data from Spotify"):
+    st.cache_data.clear()
+    st.rerun()
 all_source_playlists = load_source_playlists(sp)
 if not all_source_playlists:
     st.error("No source playlists matching `Aum#201-...` found.")
@@ -239,198 +259,468 @@ st.session_state.setdefault("simulation_done", False)
 st.session_state.setdefault("migration_done", False)
 st.session_state.setdefault("current_playlist_index", 0)
 st.session_state.setdefault("cumulative_audit_log", [])
+st.session_state.setdefault("cleanup_uris", [])
+st.session_state.setdefault("cleanup_overlap", [])
+st.session_state.setdefault("cleanup_a_id", None)
+st.session_state.setdefault("pending_preview", [])
+st.session_state.setdefault("pending_staged", {})
+st.session_state.setdefault("pending_batch_size", 0)
+st.session_state.setdefault("pending_anomalies", set())
 
 if 'target_existing_uris' not in st.session_state:
     st.session_state['target_existing_uris'] = load_target_existing_uris(sp)
 
-# 1. Visual Pre-Flight Check
-st.subheader("1. Identified Target Source Playlists")
-st.markdown("Playlists are correctly sorted chronologically by their `Aum#`.")
-with st.expander("View Source Playlists", expanded=False):
-    df_sources = pd.DataFrame([{"Aum#": int(re.search(r'Aum#(20[1-9]|2[1-8][0-9]|29[0-7])', p['name']).group(1)), "Name": p['name'], "Tracks": p['tracks']['total'], "Description": p.get('description', '')} for p in all_source_playlists])
-    st.dataframe(df_sources, use_container_width=True)
+tab1, tab2, tab3 = st.tabs(['🎧 Phase 1: Migration Engine', '🧹 Phase 2: Cross-Playlist Cleanup', '🛡️ Phase 3: Backup & Restore'])
 
-def process_mapping(simulate_only=True, batch_size=2):
-    """Core logic to map tracks, handling simulation and execution states for a specific batch slice."""
-    
-    audit_log = []
-    target_staged_tracks = {t: [] for t in TARGET_PLAYLISTS.keys()}
-    
-    global_anomalies = set()
-    total_skipped = 0
-    total_dropped = 0
-    total_null = 0
-    local_existing_uris = {k: set(v) for k,v in st.session_state['target_existing_uris'].items()}
-
-    progress_text = "Simulating Mapping..." if simulate_only else "Executing Batch Migration..."
-    progress_bar = st.progress(0, text=progress_text)
-    
-    start_idx = 0 if simulate_only else st.session_state["current_playlist_index"]
-    end_idx = min(start_idx + batch_size, len(all_source_playlists))
-    batch_playlists = all_source_playlists[start_idx:end_idx]
-    
-    if not batch_playlists:
-        st.warning("No more playlists left to process.")
-        return [], {}, set()
+with tab1:
+    # 1. Visual Pre-Flight Check
+    st.subheader("1. Identified Target Source Playlists")
+    st.markdown("Playlists are correctly sorted chronologically by their `Aum#`.")
+    with st.expander("View Source Playlists", expanded=False):
+        df_sources = pd.DataFrame([{"Aum#": int(re.search(r'Aum#(20[1-9]|2[1-8][0-9]|29[0-7])', p['name']).group(1)), "Name": p['name'], "Tracks": p['tracks']['total'], "Description": p.get('description', '')} for p in all_source_playlists])
+        st.dataframe(df_sources, use_container_width=True)
         
-    for idx, playlist in enumerate(batch_playlists):
-        progress_bar.progress((idx) / len(batch_playlists), text=f"{progress_text} ({idx+1}/{len(batch_playlists)})")
+    # 2. Global Checksum Utility
+    st.subheader("2. Global Checksum Utility")
+    with st.expander("Run Validation on All Playlists", expanded=False):
+        if st.button("🔍 Run Global Checksum"):
+            with st.spinner("Validating all playlists..."):
+                checksum_results = []
+                for p in all_source_playlists:
+                    desc = p.get('description', '')
+                    parsed = parse_description(desc)
+                    if parsed is None:
+                        checksum_results.append({"Playlist": p['name'], "Parsed Sum": "N/A", "Actual Tracks": p['tracks']['total'], "Status": "❌ Missing Counts"})
+                    else:
+                        parsed_sum = sum(g['count'] for g in parsed)
+                        actual_tracks = p['tracks']['total']
+                        status = "✅ OK" if parsed_sum == actual_tracks else "❌ Mismatch"
+                        checksum_results.append({"Playlist": p['name'], "Parsed Sum": parsed_sum, "Actual Tracks": actual_tracks, "Status": status})
+                
+                sum_df = pd.DataFrame(checksum_results)
+                st.dataframe(sum_df, use_container_width=True)
+                mismatches = len(sum_df[sum_df["Status"] != "✅ OK"])
+                if mismatches > 0:
+                    st.error(f"Found {mismatches} mismatching/failing playlists that require attention!")
+                else:
+                    st.success("All playlists perfectly match their described track counts!")
+    
+    def process_mapping(simulate_only=True, batch_size=2):
+        """Core logic to map tracks, handling simulation and execution states for a specific batch slice."""
         
-        plist_name = playlist['name']
-        description = playlist.get('description', '')
-        parsed_genres = parse_description(description)
-        tracks = get_all_playlist_tracks(sp, playlist['id'])
+        audit_log = []
+        target_staged_tracks = {t: [] for t in TARGET_PLAYLISTS.keys()}
         
-        track_index = 0
-        for p_genre in parsed_genres:
-            genre_name = p_genre['genre'].lower()
-            count = p_genre['count']
+        global_anomalies = set()
+        total_skipped = 0
+        total_dropped = 0
+        total_null = 0
+        local_existing_uris = {k: set(v) for k,v in st.session_state['target_existing_uris'].items()}
+    
+        progress_text = "Simulating Mapping..." if simulate_only else "Executing Batch Migration..."
+        progress_bar = st.progress(0, text=progress_text)
+        
+        start_idx = 0 if simulate_only else st.session_state["current_playlist_index"]
+        end_idx = min(start_idx + batch_size, len(all_source_playlists))
+        batch_playlists = all_source_playlists[start_idx:end_idx]
+        
+        if not batch_playlists:
+            st.warning("No more playlists left to process.")
+            return [], {}, set()
             
-            target = REVERSE_ROUTING.get(genre_name)
-            is_excluded = genre_name in EXCLUSION_LIST
+        for idx, playlist in enumerate(batch_playlists):
+            progress_bar.progress((idx) / len(batch_playlists), text=f"{progress_text} ({idx+1}/{len(batch_playlists)})")
             
-            if not target and not is_excluded:
-                global_anomalies.add(genre_name)
+            plist_name = playlist['name']
+            description = playlist.get('description', '')
+            parsed_genres = parse_description(description)
+            
+            if parsed_genres is None:
+                st.warning(f"Skipped '{plist_name}': Missing track counts in description.")
+                audit_log.append({
+                    "Source Playlist": plist_name, 
+                    "Parsed Genre": "N/A", 
+                    "Target Playlist": "None", 
+                    "Track URI": "None", 
+                    "Track Name": "Playlist Skipped", 
+                    "Action Taken": "Skipped Playlist (Missing Info/Counts)"
+                })
+                continue
                 
-            for _ in range(count):
-                if track_index >= len(tracks):
-                    break
+            tracks = get_all_playlist_tracks(sp, playlist['id'])
+            
+            # Checksum Guard
+            expected_count = sum(g['count'] for g in parsed_genres)
+            if expected_count != len(tracks):
+                st.warning(f"Checksum mismatch for '{plist_name}': expected {expected_count} tracks, but found {len(tracks)}.")
+                audit_log.append({
+                    "Source Playlist": plist_name, 
+                    "Parsed Genre": "N/A", 
+                    "Target Playlist": "None", 
+                    "Track URI": "None", 
+                    "Track Name": "Checksum Mismatch", 
+                    "Action Taken": "Skipped Playlist (Checksum Mismatch)"
+                })
+                continue
+            
+            track_index = 0
+            for p_genre in parsed_genres:
+                genre_name = p_genre['genre'].lower()
+                count = p_genre['count']
                 
-                item = tracks[track_index]
-                track_index += 1
+                target = REVERSE_ROUTING.get(genre_name)
+                is_excluded = genre_name in EXCLUSION_LIST
                 
-                track_obj = item.get('track')
-                if not track_obj or not track_obj.get('uri') or track_obj['uri'].startswith('spotify:local:'):
-                    total_null += 1
-                    track_name = track_obj.get('name', 'Unknown') if track_obj else 'Unknown Data'
-                    audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "None", "Track URI": "None", "Track Name": track_name, "Action Taken": "Skipped (Null URI)"})
-                    continue
-                
-                uri = track_obj['uri']
-                track_name = track_obj.get('name', 'Unknown')
-                
-                if is_excluded:
-                    total_dropped += 1
-                    audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "Drop List", "Track URI": uri, "Track Name": track_name, "Action Taken": "Dropped (Exclusion List)"})
-                    continue
+                if not target and not is_excluded:
+                    global_anomalies.add(genre_name)
                     
-                israeli_bonus_matched = False
-                
-                if target:
-                    if uri in local_existing_uris[target]:
-                        total_skipped += 1
-                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped Duplicate"})
-                    else:
-                        target_staged_tracks[target].append(uri)
-                        local_existing_uris[target].add(uri)
-                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Appended"})
-
-                # --- Parallel Israeli Music Routing ---
-                if target != "Israeli Music" and is_israeli_track(track_obj):
-                    israeli_target = "Israeli Music"
-                    israeli_bonus_matched = True
-                    if uri in local_existing_uris[israeli_target]:
-                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped Duplicate (Bonus: Israeli Music)"})
-                    else:
-                        target_staged_tracks[israeli_target].append(uri)
-                        local_existing_uris[israeli_target].add(uri)
-                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Appended (Bonus: Israeli Music)"})
+                for _ in range(count):
+                    if track_index >= len(tracks):
+                        break
+                    
+                    item = tracks[track_index]
+                    track_index += 1
+                    
+                    track_obj = item.get('track')
+                    if not track_obj or not track_obj.get('uri') or track_obj['uri'].startswith('spotify:local:'):
+                        total_null += 1
+                        track_name = track_obj.get('name', 'Unknown') if track_obj else 'Unknown Data'
+                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "None", "Track URI": "None", "Track Name": track_name, "Action Taken": "Skipped (Null URI)"})
+                        continue
+                    
+                    uri = track_obj['uri']
+                    track_name = track_obj.get('name', 'Unknown')
+                    
+                    if is_excluded:
+                        total_dropped += 1
+                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "Drop List", "Track URI": uri, "Track Name": track_name, "Action Taken": "Dropped (Exclusion List)"})
+                        continue
                         
-                if not target and not israeli_bonus_matched:
-                    audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "None", "Track URI": uri, "Track Name": track_name, "Action Taken": "Unmapped / Ignored"})
-
-    progress_bar.progress(1.0, text="Process Complete!")
-    return audit_log, target_staged_tracks, global_anomalies
-
-# 2. Phase A: Simulation
-st.subheader("2. Phase A: Dry-Run Simulation")
-st.markdown("Run a simulation on exactly 2 playlists to verify mapping integrity before committing database POST operations.")
-
-if st.button("Run Mapping Simulation (Dry-Run)", type="primary"):
-    with st.spinner("Processing simulation..."):
-        sim_log, staged, anomalies = process_mapping(simulate_only=True, batch_size=2)
-        st.session_state['simulation_done'] = True
-        
-        sim_df = pd.DataFrame(sim_log)
-        
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Tracks Staged", sum(len(v) for v in staged.values()))
-        col2.metric("Duplicates Skipped", len(sim_df[sim_df['Action Taken'].str.contains('Skipped Duplicate')]) if not sim_df.empty else 0)
-        col3.metric("Unmapped Anomalies", len(anomalies))
-        
-        st.markdown("**Simulation Audit Log Preview:**")
-        st.dataframe(sim_df, use_container_width=True)
-        
-        if anomalies:
-            st.warning(f"Unmapped Genres Detected: {', '.join(anomalies)}")
-
-# 3. Phase B: Execution (Batch Control Panel)
-if st.session_state['simulation_done']:
-    st.divider()
-    st.subheader("3. Phase B: Execute Batch Migration")
-    st.markdown(f"**Current Progress:** Processed `{st.session_state['current_playlist_index']}` out of `{len(all_source_playlists)}` playlists.")
+                    israeli_bonus_matched = False
+                    
+                    if target:
+                        # Mutual Exclusion for Hip Hop
+                        if target == "Hip Hop, Rap" and uri in local_existing_uris.get("Israeli Hip Hop", set()):
+                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped (Excluded Sub-genre)"})
+                        elif uri in local_existing_uris[target]:
+                            total_skipped += 1
+                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped Duplicate"})
+                        else:
+                            target_staged_tracks[target].append(uri)
+                            local_existing_uris[target].add(uri)
+                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Appended"})
+    
+                    # --- Parallel Israeli Music Routing ---
+                    if target != "Israeli Music" and is_israeli_track(track_obj):
+                        israeli_target = "Israeli Music"
+                        
+                        # Mutual Exclusion for Israeli Music
+                        if target in ["Mizrahi", "Israeli Hip Hop"] or \
+                           uri in local_existing_uris.get("Mizrahi", set()) or \
+                           uri in local_existing_uris.get("Israeli Hip Hop", set()):
+                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped (Excluded Sub-genre)"})
+                        else:
+                            israeli_bonus_matched = True
+                            if uri in local_existing_uris[israeli_target]:
+                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped Duplicate (Bonus: Israeli Music)"})
+                            else:
+                                target_staged_tracks[israeli_target].append(uri)
+                                local_existing_uris[israeli_target].add(uri)
+                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Appended (Bonus: Israeli Music)"})
+                            
+                    if not target and not israeli_bonus_matched:
+                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "None", "Track URI": uri, "Track Name": track_name, "Action Taken": "Unmapped / Ignored"})
+    
+        progress_bar.progress(1.0, text="Process Complete!")
+        return audit_log, target_staged_tracks, global_anomalies
+    
+    # 3. Phase A: Batch Preview
+    st.subheader("3. Phase A: Preview Batch Migration")
     
     remaining = len(all_source_playlists) - st.session_state['current_playlist_index']
-    st.progress(st.session_state['current_playlist_index'] / len(all_source_playlists))
+    st.markdown(f"**Current Progress:** Processed `{st.session_state['current_playlist_index']}` out of `{len(all_source_playlists)}` playlists.")
+    progress_val = st.session_state['current_playlist_index'] / len(all_source_playlists) if len(all_source_playlists) > 0 else 0
+    st.progress(progress_val)
     
     if remaining > 0:
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         batch_to_run = 0
         
-        if c1.button("Process Next 5 Playlists", disabled=(remaining==0)):
+        if c1.button("Preview Next 5", disabled=(remaining==0)):
             batch_to_run = min(5, remaining)
-        if c2.button("Process Next 10 Playlists", disabled=(remaining==0)):
+        if c2.button("Preview Next 10", disabled=(remaining==0)):
             batch_to_run = min(10, remaining)
-        if c3.button("Process All Remaining", disabled=(remaining==0)):
+        if c3.button("Preview All Remaining", disabled=(remaining==0)):
             batch_to_run = remaining
             
+        if c4.button("🔁 Reset Progress", type="secondary"):
+             st.session_state['current_playlist_index'] = 0
+             st.session_state['pending_preview'] = []
+             st.session_state['pending_staged'] = {}
+             st.session_state['pending_batch_size'] = 0
+             st.session_state['pending_anomalies'] = set()
+             st.warning("Progress reset. You can now start over.")
+             time.sleep(1.5)
+             st.rerun()
+            
         if batch_to_run > 0:
-            batch_log, staged_tracks, full_anomalies = process_mapping(simulate_only=False, batch_size=batch_to_run)
-            
-            with st.status(f"Uploading Batch ({batch_to_run} playlists)...", expanded=True) as status:
-                chunks_done = 0
-                for target_name, uris in staged_tracks.items():
-                    if not uris:
-                        continue
-                    target_id = TARGET_PLAYLISTS[target_name]
-                    st.write(f"Pushing {len(uris)} new tracks to `{target_name}`...")
-                    for chunk in chunk_list(uris, 100):
-                        sp.playlist_add_items(target_id, chunk)
-                        chunks_done += 1
-                        time.sleep(0.5)
-                status.update(label="Batch Upload Complete!", state="complete", expanded=False)
-            
-            # Update cumulative State
-            start_num = st.session_state["current_playlist_index"]
-            st.session_state["current_playlist_index"] += batch_to_run
-            st.session_state["cumulative_audit_log"].extend(batch_log)
-            
-            # Update local URIs so the next batch knows about the tracks we just appended
-            for tgt, uris in staged_tracks.items():
-                st.session_state['target_existing_uris'][tgt].update(uris)
+            with st.spinner(f"Simulating Batch ({batch_to_run} playlists)..."):
+                batch_log, staged_tracks, full_anomalies = process_mapping(simulate_only=True, batch_size=batch_to_run)
                 
-            st.success(f"Successfully processed playlists index {start_num} through {start_num + batch_to_run - 1}!")
-            st.rerun()
+                # Store pending preview results in session state
+                st.session_state['pending_preview'] = batch_log
+                st.session_state['pending_staged'] = staged_tracks
+                st.session_state['pending_anomalies'] = full_anomalies
+                st.session_state['pending_batch_size'] = batch_to_run
+                st.rerun()
+                
     else:
         st.success("All playlists have been completely migrated!")
+        if st.button("🔁 Reset Progress", type="secondary"):
+             st.session_state['current_playlist_index'] = 0
+             st.session_state['pending_preview'] = []
+             st.session_state['pending_staged'] = {}
+             st.session_state['pending_batch_size'] = 0
+             st.session_state['pending_anomalies'] = set()
+             st.rerun()
 
-# 4. Phase C: Cumulative CSV Reporting
-st.divider()
-st.subheader("4. Cumulative Audit Log")
-
-cumulative_log = st.session_state["cumulative_audit_log"]
-if cumulative_log:
-    final_df = pd.DataFrame(cumulative_log)
-    st.dataframe(final_df.tail(100), use_container_width=True)
-    st.caption("Showing last 100 entries of the cumulative run...")
+    # If we have a pending preview staged, display the Dataframe and Execution buttons
+    if st.session_state['pending_preview'] and st.session_state['pending_batch_size'] > 0:
+        st.divider()
+        st.subheader("Preview (Action Required)")
+        sim_df = pd.DataFrame(st.session_state['pending_preview'])
+        st.dataframe(sim_df, use_container_width=True)
+        
+        if st.session_state['pending_anomalies']:
+            st.warning(f"Unmapped Genres Detected: {', '.join(st.session_state['pending_anomalies'])}")
+            
+        st.subheader("4. Phase B: Execute Batch")
+        
+        col_ok, col_cancel = st.columns([1, 4])
+        
+        with col_ok:
+            if st.button("✅ Confirm & Push to Spotify", type="primary"):
+                staged_tracks = st.session_state['pending_staged']
+                batch_run = st.session_state['pending_batch_size']
+                
+                with st.status(f"Uploading Batch ({batch_run} playlists)...", expanded=True) as status:
+                    chunks_done = 0
+                    for target_name, uris in staged_tracks.items():
+                        if not uris:
+                            continue
+                        target_id = TARGET_PLAYLISTS[target_name]
+                        st.write(f"Pushing {len(uris)} new tracks to `{target_name}`...")
+                        for chunk in chunk_list(uris, 100):
+                            sp.playlist_add_items(target_id, chunk)
+                            chunks_done += 1
+                            time.sleep(0.5)
+                    status.update(label="Batch Upload Complete!", state="complete", expanded=False)
+                
+                # Update cumulative State
+                start_num = st.session_state["current_playlist_index"]
+                st.session_state["current_playlist_index"] += batch_run
+                st.session_state["cumulative_audit_log"].extend(st.session_state['pending_preview'])
+                
+                # Update local URIs so the next batch knows about the tracks we just appended
+                for tgt, uris in staged_tracks.items():
+                    st.session_state['target_existing_uris'][tgt].update(uris)
+                    
+                # Clear pending states safely
+                st.session_state['pending_preview'] = []
+                st.session_state['pending_staged'] = {}
+                st.session_state['pending_batch_size'] = 0
+                st.session_state['pending_anomalies'] = set()
+                
+                st.success(f"Successfully processed playlists index {start_num} through {start_num + batch_run - 1}!")
+                time.sleep(1.5)
+                st.rerun()
+                
+        with col_cancel:
+            if st.button("❌ Cancel Batch"):
+                st.session_state['pending_preview'] = []
+                st.session_state['pending_staged'] = {}
+                st.session_state['pending_batch_size'] = 0
+                st.session_state['pending_anomalies'] = set()
+                st.rerun()
     
-    csv = final_df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="Download Cumulative Audit Log (CSV)",
-        data=csv,
-        file_name='spotify_migration_audit_log.csv',
-        mime='text/csv',
-        type="primary"
-    )
-else:
-    st.info("No batches executed yet. The cumulative audit log is empty.")
+    # 4. Phase C: Cumulative CSV Reporting
+    st.divider()
+    st.subheader("4. Cumulative Audit Log")
+    
+    cumulative_log = st.session_state["cumulative_audit_log"]
+    if cumulative_log:
+        final_df = pd.DataFrame(cumulative_log)
+        st.dataframe(final_df.tail(100), use_container_width=True)
+        st.caption("Showing last 100 entries of the cumulative run...")
+        
+        csv = final_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Download Cumulative Audit Log (CSV)",
+            data=csv,
+            file_name='spotify_migration_audit_log.csv',
+            mime='text/csv',
+            type="primary"
+        )
+    else:
+        st.info("No batches executed yet. The cumulative audit log is empty.")
+
+with tab2:
+    st.header("🧹 Cross-Playlist Cleanup Utility")
+    st.markdown("Safely remove tracks from **Playlist A** that already exist in **Playlist B**.")
+    
+    # Fetch all user playlists to populate dropdowns
+    all_user_playlists = get_all_user_playlists(sp)
+    playlist_options = {p['name']: p['id'] for p in all_user_playlists}
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("Playlist to Clean (Target A)")
+        st.caption("Tracks will be deleted FROM this playlist.")
+        a_dropdown = st.selectbox("Select Playlist A", options=list(playlist_options.keys()), key="cleanup_a_sel")
+        a_url = st.text_input("Or enter Spotify URL for Playlist A", key="cleanup_a_url", placeholder="https://open.spotify.com/playlist/...")
+        
+    with col2:
+        st.subheader("Reference Playlist (Target B)")
+        st.caption("Tracks found HERE will be deleted from Target A.")
+        b_dropdown = st.selectbox("Select Playlist B", options=list(playlist_options.keys()), key="cleanup_b_sel")
+        b_url = st.text_input("Or enter Spotify URL for Playlist B", key="cleanup_b_url", placeholder="https://open.spotify.com/playlist/...")
+        
+    def extract_playlist_id(input_str):
+        if not input_str: return None
+        # Extract ID from standard Spotify URL or URI
+        match = re.search(r'playlist[:/]([a-zA-Z0-9]+)', input_str)
+        return match.group(1) if match else input_str.strip()
+
+    a_id = extract_playlist_id(a_url) or playlist_options.get(a_dropdown)
+    b_id = extract_playlist_id(b_url) or playlist_options.get(b_dropdown)
+
+    if st.button("🔍 Scan & Verify Overlap", type="primary"):
+        if not a_id or not b_id:
+            st.error("Invalid Playlist IDs.")
+        elif a_id == b_id:
+            st.error("Playlist A and Playlist B cannot be the same.")
+        else:
+            with st.spinner("Fetching tracks from both playlists..."):
+                tracks_a = get_all_playlist_tracks(sp, a_id)
+                tracks_b = get_all_playlist_tracks(sp, b_id)
+                
+                uris_b = {item['track']['uri'] for item in tracks_b if item.get('track') and item['track'].get('uri')}
+                
+                overlap = []
+                uris_to_delete = []
+                
+                for item in tracks_a:
+                    t = item.get('track')
+                    if t and t.get('uri') and t['uri'] in uris_b:
+                        overlap.append({
+                            "Track Name": t.get('name', 'Unknown'),
+                            "Artist": ", ".join(arr['name'] for arr in t.get('artists', [])),
+                            "URI": t['uri']
+                        })
+                        if t['uri'] not in uris_to_delete: # Prevent duplicate URIs in the deletion array
+                            uris_to_delete.append(t['uri'])
+                        
+                st.session_state['cleanup_uris'] = uris_to_delete
+                st.session_state['cleanup_overlap'] = overlap
+                st.session_state['cleanup_a_id'] = a_id
+                
+    if st.session_state.get('cleanup_uris'):
+        st.divider()
+        st.warning(f"Found {len(st.session_state['cleanup_uris'])} overlapping tracks ready for deletion.")
+        st.dataframe(pd.DataFrame(st.session_state['cleanup_overlap']), use_container_width=True)
+        
+        col_exec1, col_exec2 = st.columns([1, 4])
+        
+        with col_exec1:
+            if st.button(f"🗑️ Delete {len(st.session_state['cleanup_uris'])} Tracks", type="primary"):
+                with st.spinner("Deleting tracks from Playlist A..."):
+                    uris = st.session_state['cleanup_uris']
+                    playlist_id_to_clean = st.session_state['cleanup_a_id']
+                    
+                    # Delete in chunks of 100
+                    for chunk in chunk_list(uris, 100):
+                        sp.playlist_remove_all_occurrences_of_items(playlist_id_to_clean, chunk)
+                        time.sleep(0.5)
+                        
+                st.success("Successfully deleted overlapping tracks!")
+                st.session_state['cleanup_uris'] = []
+                st.session_state['cleanup_overlap'] = []
+                st.session_state['cleanup_a_id'] = None
+                time.sleep(2)
+                st.rerun()
+                
+        with col_exec2:
+            if st.button("Cancel & Clear Settings"):
+                st.session_state['cleanup_uris'] = []
+                st.session_state['cleanup_overlap'] = []
+                st.session_state['cleanup_a_id'] = None
+                st.rerun()
+
+with tab3:
+    st.header("🛡️ Phase 3: Backup & Restore")
+    st.markdown("Create snapshots of your target playlists before migrations, and restore them if necessary.")
+    
+    st.subheader("📦 Part 1: Create Snapshot (Backup)")
+    if st.button("Create Target Playlists Snapshot", type="primary"):
+        with st.spinner("Fetching current tracks from all target playlists..."):
+            backup_data = {}
+            for name, p_id in TARGET_PLAYLISTS.items():
+                tracks = get_all_playlist_tracks(sp, p_id)
+                # Keep only valid URIs
+                uris = [item['track']['uri'] for item in tracks if item.get('track') and item['track'].get('uri') and not item['track']['uri'].startswith('spotify:local:')]
+                backup_data[name] = uris
+            
+            json_str = json.dumps(backup_data, indent=2)
+            date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            filename = f"spotify_backup_{date_str}.json"
+            
+            st.success("Snapshot created successfully!")
+            st.download_button(
+                label=f"⬇️ Download {filename}",
+                data=json_str,
+                file_name=filename,
+                mime="application/json"
+            )
+            
+    st.divider()
+    st.subheader("⚠️ Part 2: Restore from Snapshot (Rollback)")
+    uploaded_file = st.file_uploader("Upload a backup JSON file", type=["json"])
+    
+    if uploaded_file is not None:
+        try:
+            restore_data = json.load(uploaded_file)
+            st.write("Backup Contents:")
+            
+            # Display summary
+            summary = [{"Playlist": k, "Tracks": len(v)} for k, v in restore_data.items()]
+            st.dataframe(pd.DataFrame(summary), use_container_width=True)
+            
+            if st.button("⚠️ DANGER: Restore from Backup (Overwrite Current State)", type="primary"):
+                with st.spinner("Restoring playlists..."):
+                    for name, uris in restore_data.items():
+                        if name not in TARGET_PLAYLISTS:
+                            continue
+                            
+                        target_id = TARGET_PLAYLISTS[name]
+                        st.write(f"Restoring `{name}` ({len(uris)} tracks)...")
+                        
+                        if not uris:
+                            sp.playlist_replace_items(target_id, [])
+                        else:
+                            # Replace first 100 to clear existing and set first chunk
+                            sp.playlist_replace_items(target_id, uris[:100])
+                            time.sleep(0.5)
+                            
+                            # Add remaining tracks in chunks of 100
+                            for chunk in chunk_list(uris[100:], 100):
+                                sp.playlist_add_items(target_id, chunk)
+                                time.sleep(0.5)
+                                
+                    # Reset session state caches to reflect restored state
+                    st.session_state['target_existing_uris'] = load_target_existing_uris(sp)
+                    st.success("Restore complete! All target playlists have been reverted to the backup state.")
+                    time.sleep(2)
+                    st.rerun()
+                    
+        except json.JSONDecodeError:
+            st.error("Invalid JSON file uploaded.")
