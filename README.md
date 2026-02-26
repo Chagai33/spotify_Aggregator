@@ -28,6 +28,7 @@ This tool successfully identified historical typos, improved the accuracy of the
 *   **📥 DLQ (Dead Letter Queue) Routing:** Any tracks with unmapped or unrecognized genres are automatically routed to a designated "Triage/Catch-All" playlist for manual review, ensuring zero data loss.
 
 ## 📸 Screenshots
+![Checksum Validator](./assets/checksum_validator.png)
 ![Aum.Music App Demo](./assets/demo.gif)
 
 
