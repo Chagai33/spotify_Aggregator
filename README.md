@@ -26,6 +26,8 @@ This tool successfully identified historical typos, improved the accuracy of the
 *   **📦 Backup & Restore (Rollback Plan):** A built-in risk management system. Before any run, it generates a JSON snapshot of all target playlists. In case of an error, a single "Danger" button safely wipes and restores the Spotify playlists to their exact previous state handling API rate limits natively.
 *   **🧹 Cross-Playlist Cleanup Utility:** An isolated helper tool to dynamically detect, verify, and delete overlapping tracks between any two given playlists to maintain pristine curation.
 *   **📥 DLQ (Dead Letter Queue) Routing:** Any tracks with unmapped or unrecognized genres are automatically routed to a designated "Triage/Catch-All" playlist for manual review, ensuring zero data loss.
+*   **📊 Global Playlists Insights:** A module built with a local JSON cache to rapidly analyze and display metadata (followers, collaborative status, public status, track counts) across the user's entire library without hitting Spotify's API rate limits. 
+*   **🌟 SEO & Popularity Optimizer:** Evaluates track popularity (0-100) using Spotify's official metrics and allows "pinning" the most popular tracks to the top of any playlist to boost listener retention and organic search rank.
 
 ## 📸 Screenshots
 ![Checksum Validator](./assets/checksum_validator.png)
@@ -34,7 +36,7 @@ This tool successfully identified historical typos, improved the accuracy of the
 
 ## 🛠️ Tech Stack
 *   **Python 3**
-*   **Streamlit:** For building the 3-tab interactive dashboard, managing Session State, and providing visual feedback (DataFrames, Progress Bars).
+*   **Streamlit:** For building the 5-tab interactive dashboard, managing Session State, and providing visual feedback (DataFrames, Progress Bars).
 *   **Spotipy:** For interacting with the Spotify Web API, handling OAuth2 Authentication, fetching paginated playlists, and chunking API requests to avoid `429 Too Many Requests` errors.
 *   **Pandas:** For structuring audit logs, processing overlapping arrays, and exporting cumulative CSV reports.
 *   **Regex (re):** For fault-tolerant parsing of messy, human-typed playlist descriptions.

@@ -1,9 +1,9 @@
+import os
 import streamlit as st
 import pandas as pd
 import re
 import time
 import unicodedata
-import spotipy
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
@@ -32,7 +32,7 @@ GENRE_ROUTING_DICT = {
     "Israeli Hip Hop": ["Israeli Hip Hop", "Israeli Rap"],
     "Reggae": ["Reggae", "Modern Reggae", "Reggae Rock", "Indie Reggae", "West Coast Reggae"],
     "Israeli Music": ["Israeli Music", "Israeli Pop", "Israeli Indie", "Indie IL", "Israeli"],
-    "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "R&B", "Rendb", "RB", "Soul", "Electro Chil", "Electro Chill", "Indie Modern Funk", "Acoustic Folk", "Folk", "Acoustic", "Pop", "Alternative Indie, Rock", "Meditation", "indie rock, pop", "indie soul, country"],
+    "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "R&B", "Rendb", "RB", "Soul", "Electro Chil", "Electro Chill", "Indie Modern Funk", "Acoustic Folk", "Folk", "Acoustic", "Pop", "Alternative Indie, Rock", "Meditation", "indie rock, pop", "indie soul, country", "indie folk", "lofi", "folk", "acoustic"],
     "Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "House Techno", "Techno", "Tech, Bass House", "Groove Metal", "bass / melodic house"],
     "Hip Hop, Rap": ["Hip Hop", "Rap", "Hip Hop, Rap", "Rap, Hip Hop", "UG Hip Hop", "Underground Hip Hop", "UG Hip Pop", "UG Rap", "Trap", "Dark Trap", "Latin Trap", "Bass Trap", "Hip Pop", "East Coast Hip Hop", "Multigenre Rap", "Dfw Rap", "London Rap", "Westcoast Rap", "West Coast Rap", "Drift Phonk", "Hip Hop Rap", "Hip Pop / Trap", "NYC"],
     "Afrobeats": ["Afrobeats", "Afrobeat", "Dancehall", "Kenyan Drill", "Dancehall Blend"],
@@ -274,7 +274,7 @@ st.session_state.setdefault("pending_anomalies", set())
 if 'target_existing_uris' not in st.session_state:
     st.session_state['target_existing_uris'] = load_target_existing_uris(sp)
 
-tab1, tab2, tab3 = st.tabs(['🎧 Phase 1: Migration Engine', '🧹 Phase 2: Cross-Playlist Cleanup', '🛡️ Phase 3: Backup & Restore'])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(['🎧 Phase 1: Migration Engine', '🧹 Phase 2: Cross-Playlist Cleanup', '🛡️ Phase 3: Backup & Restore', '📊 Phase 4: Global Playlists Insights', '🌟 Phase 5: SEO & Popularity Optimizer'])
 
 with tab1:
     # 1. Visual Pre-Flight Check
@@ -808,3 +808,218 @@ with tab3:
                     
         except json.JSONDecodeError:
             st.error("Invalid JSON file uploaded.")
+
+with tab4:
+    st.header("📊 Phase 4: Global Playlists Insights")
+    st.markdown("View comprehensive statistics for all your playlists. Since fetching follower counts for hundreds of playlists takes time, use 'Basic Sync' for a quick overview or 'Deep Refresh' for specific items.")
+    
+    STATS_FILE = "playlist_insights_cache.json"
+    
+    # Load cache from file if it exists and session state is empty
+    if 'all_playlists_stats' not in st.session_state:
+        if os.path.exists(STATS_FILE):
+            try:
+                with open(STATS_FILE, 'r', encoding='utf-8') as f:
+                    st.session_state['all_playlists_stats'] = json.load(f)
+            except Exception:
+                st.session_state['all_playlists_stats'] = {}
+        else:
+            st.session_state['all_playlists_stats'] = {}
+        
+    col_basic, col_deep = st.columns(2)
+    with col_basic:
+        if st.button("⚡ Fast Sync (All Playlists, No Followers)", type="primary"):
+            with st.spinner("Fetching basic playlist metadata..."):
+                all_pls = get_all_user_playlists(sp)
+                new_stats = {}
+                for p in all_pls:
+                    # Keep existing follower count if we already fetched it deeply, else 'N/A'
+                    existing = st.session_state['all_playlists_stats'].get(p['id'], {})
+                    followers = existing.get("Followers", "N/A")
+                    
+                    new_stats[p['id']] = {
+                        "ID": p['id'],
+                        "Playlist Name": p['name'],
+                        "Followers": followers,
+                        "Total Tracks": p['tracks']['total'],
+                        "Public": "Yes" if p['public'] else "No",
+                        "Collaborative": "Yes" if p['collaborative'] else "No",
+                        "Description": html.unescape(p.get('description', '') or ''),
+                        "Owner": p['owner']['display_name']
+                    }
+                st.session_state['all_playlists_stats'] = new_stats
+                
+                # Save to disk
+                with open(STATS_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(new_stats, f, indent=2, ensure_ascii=False)
+                    
+                st.success(f"Successfully loaded and cached {len(new_stats)} playlists!")
+                time.sleep(1)
+                st.rerun()
+
+    with col_deep:
+        if st.button("🐢 Deep Sync (All Playlists + Followers - VERY SLOW)"):
+            if not st.session_state['all_playlists_stats']:
+                st.warning("Please do a 'Fast Sync' first to load the playlist IDs.")
+            else:
+                total_pls = len(st.session_state['all_playlists_stats'])
+                progress_bar = st.progress(0, text="Deep syncing all playlists...")
+                
+                for idx, (p_id, stats) in enumerate(st.session_state['all_playlists_stats'].items()):
+                    try:
+                        p_full = sp.playlist(p_id)
+                        stats["Followers"] = p_full['followers']['total']
+                        stats["Total Tracks"] = p_full['tracks']['total']
+                        stats["Public"] = "Yes" if p_full['public'] else "No"
+                        stats["Collaborative"] = "Yes" if p_full['collaborative'] else "No"
+                        stats["Description"] = html.unescape(p_full.get('description', '') or '')
+                        stats["Owner"] = p_full['owner']['display_name']
+                        
+                        # Polite API rate limiting
+                        time.sleep(0.2)
+                    except Exception:
+                        stats["Followers"] = "Error"
+                        time.sleep(1) # Back off on error
+                    
+                    progress_bar.progress((idx + 1) / total_pls, text=f"Deep syncing... ({idx + 1}/{total_pls})")
+                
+                # Save to disk after full deep sync
+                with open(STATS_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(st.session_state['all_playlists_stats'], f, indent=2, ensure_ascii=False)
+                    
+                progress_bar.empty()
+                st.success("Deep sync complete! Insights cached locally.")
+                time.sleep(1)
+                st.rerun()
+
+    st.divider()
+    
+    if st.session_state['all_playlists_stats']:
+        st.subheader("Targeted Refresh")
+        # Ensure we have a mapping from name -> id for the selectbox
+        # We append the ID to handle if playlists have identical names
+        name_to_id = {f"{v['Playlist Name']} ({k[:8]})": k for k, v in st.session_state['all_playlists_stats'].items()}
+        selected_name = st.selectbox("Search and select a specific playlist to Deep Refresh:", options=list(name_to_id.keys()))
+        
+        if st.button("🔄 Deep Refresh Selected"):
+            selected_id = name_to_id[selected_name]
+            with st.spinner(f"Fetching full metadata..."):
+                try:
+                    p_full = sp.playlist(selected_id)
+                    st.session_state['all_playlists_stats'][selected_id].update({
+                        "Followers": p_full['followers']['total'],
+                        "Total Tracks": p_full['tracks']['total'],
+                        "Public": "Yes" if p_full['public'] else "No",
+                        "Collaborative": "Yes" if p_full['collaborative'] else "No",
+                        "Description": html.unescape(p_full.get('description', '') or ''),
+                        "Owner": p_full['owner']['display_name']
+                    })
+                    
+                    # Save to disk after individual update
+                    with open(STATS_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(st.session_state['all_playlists_stats'], f, indent=2, ensure_ascii=False)
+                        
+                    st.success("Updated successfully, and cache saved!")
+                    time.sleep(1)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to refresh: {e}")
+                    
+        st.divider()
+        
+        st.subheader("Playlists View")
+        search_query = st.text_input("🔍 Filter Table by Playlist Name:").strip().lower()
+        
+        df_data = list(st.session_state['all_playlists_stats'].values())
+        if search_query:
+            df_data = [d for d in df_data if search_query in str(d["Playlist Name"]).lower()]
+            
+        if df_data:
+            df = pd.DataFrame(df_data)
+            df_display = df.drop(columns=["ID"]) if "ID" in df.columns else df
+            st.dataframe(df_display, use_container_width=True)
+            st.caption(f"Showing {len(df_data)} playlists.")
+        else:
+            st.info("No playlists match your search.")
+    else:
+        st.info("Click 'Fast Sync' above to load your playlists.")
+
+with tab5:
+    st.header("🌟 Phase 5: SEO & Popularity Optimizer")
+    st.markdown("Analyze track popularity and optimize the top of your playlists to reduce skip rates.")
+    
+    if 'seo_tracks' not in st.session_state:
+        st.session_state['seo_tracks'] = []
+    if 'seo_playlist_id' not in st.session_state:
+        st.session_state['seo_playlist_id'] = None
+        
+    st.subheader("1. Track Popularity Analyzer")
+    seo_target_name = st.selectbox("Select Master Playlist to Analyze:", options=list(TARGET_PLAYLISTS.keys()))
+    
+    if st.button("🔍 Analyze Track Popularity"):
+        selected_id = TARGET_PLAYLISTS[seo_target_name]
+        with st.spinner("Fetching tracks and popularity metrics..."):
+            tracks = get_all_playlist_tracks(sp, selected_id)
+            
+            seo_data = []
+            for idx, item in enumerate(tracks):
+                t = item.get('track')
+                if t and t.get('uri') and not t['uri'].startswith('spotify:local:'):
+                    seo_data.append({
+                        "Current Order Index": idx + 1,
+                        "Track Name": t.get('name', 'Unknown'),
+                        "Artist": ", ".join(a.get('name', 'Unknown') for a in t.get('artists', [])),
+                        "Popularity": t.get('popularity', 0),
+                        "URI": t['uri']
+                    })
+            
+            st.session_state['seo_tracks'] = seo_data
+            st.session_state['seo_playlist_id'] = selected_id
+            st.success(f"Successfully analyzed {len(seo_data)} tracks in {seo_target_name}!")
+            time.sleep(1)
+            st.rerun()
+            
+    if st.session_state['seo_tracks']:
+        st.dataframe(pd.DataFrame(st.session_state['seo_tracks']), use_container_width=True)
+        
+        st.divider()
+        st.subheader("2. SEO Playlist Optimizer (Top Tracks First)")
+        st.markdown("Re-order the playlist by bringing the most popular tracks to the top while keeping the rest in their original order.")
+        
+        top_x = st.slider("Select number of top popular tracks to pin to the top:", min_value=5, max_value=20, value=10, step=1)
+        
+        if st.button("🚀 Optimize Playlist Order (SEO)", type="primary"):
+            with st.spinner("Reordering playlist..."):
+                playlist_id = st.session_state['seo_playlist_id']
+                current_tracks = st.session_state['seo_tracks']
+                
+                # Sort descending by popularity
+                sorted_by_pop = sorted(current_tracks, key=lambda x: x["Popularity"], reverse=True)
+                top_x_tracks = sorted_by_pop[:top_x]
+                
+                # Get the URIs
+                top_x_uris = [t["URI"] for t in top_x_tracks]
+                
+                # Get the remaining URIs in their ORIGINAL order
+                remaining_uris = [t["URI"] for t in current_tracks if t["URI"] not in top_x_uris]
+                
+                # Combine
+                optimized_uris = top_x_uris + remaining_uris
+                
+                # Execute replacement
+                if not optimized_uris:
+                    sp.playlist_replace_items(playlist_id, [])
+                else:
+                    sp.playlist_replace_items(playlist_id, optimized_uris[:100])
+                    time.sleep(0.5)
+                    
+                    for chunk in chunk_list(optimized_uris[100:], 100):
+                        sp.playlist_add_items(playlist_id, chunk)
+                        time.sleep(0.5)
+                        
+                st.session_state['seo_tracks'] = []
+                st.session_state['seo_playlist_id'] = None
+                
+                st.success(f"Playlist opening has been optimized for SEO! Pinned top {top_x} tracks.")
+                time.sleep(2)
+                st.rerun()
