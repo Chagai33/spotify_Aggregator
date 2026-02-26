@@ -32,8 +32,8 @@ GENRE_ROUTING_DICT = {
     "Israeli Hip Hop": ["Israeli Hip Hop", "Israeli Rap"],
     "Reggae": ["Reggae", "Modern Reggae", "Reggae Rock", "Indie Reggae", "West Coast Reggae"],
     "Israeli Music": ["Israeli Music", "Israeli Pop", "Israeli Indie", "Indie IL", "Israeli"],
-    "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "R&B", "Rendb", "RB", "Soul", "Electro Chil", "Electro Chill", "Indie Modern Funk", "Acoustic Folk", "Folk", "Acoustic", "Pop", "Alternative Indie, Rock", "Meditation"],
-    "Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "House Techno", "Techno", "Tech, Bass House", "Groove Metal"],
+    "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "R&B", "Rendb", "RB", "Soul", "Electro Chil", "Electro Chill", "Indie Modern Funk", "Acoustic Folk", "Folk", "Acoustic", "Pop", "Alternative Indie, Rock", "Meditation", "indie rock, pop"],
+    "Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "House Techno", "Techno", "Tech, Bass House", "Groove Metal", "bass / melodic house"],
     "Hip Hop, Rap": ["Hip Hop", "Rap", "Hip Hop, Rap", "Rap, Hip Hop", "UG Hip Hop", "Underground Hip Hop", "UG Hip Pop", "UG Rap", "Trap", "Dark Trap", "Latin Trap", "Bass Trap", "Hip Pop", "East Coast Hip Hop", "Multigenre Rap", "Dfw Rap", "London Rap", "Westcoast Rap", "West Coast Rap", "Drift Phonk", "Hip Hop Rap", "Hip Pop / Trap", "NYC"],
     "Afrobeats": ["Afrobeats", "Afrobeat", "Dancehall", "Kenyan Drill", "Dancehall Blend"],
     "Mizrahi": ["Mizrahi", "Mizrachi", "Yemeni Diwan"],
@@ -382,7 +382,7 @@ with tab1:
         progress_text = "Simulating Mapping..." if simulate_only else "Executing Batch Migration..."
         progress_bar = st.progress(0, text=progress_text)
         
-        start_idx = 0 if simulate_only else st.session_state["current_playlist_index"]
+        start_idx = st.session_state["current_playlist_index"]
         end_idx = min(start_idx + batch_size, len(all_source_playlists))
         batch_playlists = all_source_playlists[start_idx:end_idx]
         
@@ -403,9 +403,10 @@ with tab1:
                     "Source Playlist": plist_name, 
                     "Parsed Genre": "N/A", 
                     "Target Playlist": "None", 
-                    "Track URI": "None", 
                     "Track Name": "Playlist Skipped", 
-                    "Action Taken": "Skipped Playlist (Missing Info/Counts)"
+                    "Artist Name": "N/A",
+                    "Action Taken": "Skipped Playlist (Missing Info/Counts)",
+                    "Track URI": "None"
                 })
                 continue
                 
@@ -419,9 +420,10 @@ with tab1:
                     "Source Playlist": plist_name, 
                     "Parsed Genre": "N/A", 
                     "Target Playlist": "None", 
-                    "Track URI": "None", 
                     "Track Name": "Checksum Mismatch", 
-                    "Action Taken": "Skipped Playlist (Checksum Mismatch)"
+                    "Artist Name": "N/A",
+                    "Action Taken": "Skipped Playlist (Checksum Mismatch)",
+                    "Track URI": "None"
                 })
                 continue
             
@@ -448,15 +450,17 @@ with tab1:
                     if not track_obj or not track_obj.get('uri') or track_obj['uri'].startswith('spotify:local:'):
                         total_null += 1
                         track_name = track_obj.get('name', 'Unknown') if track_obj else 'Unknown Data'
-                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "None", "Track URI": "None", "Track Name": track_name, "Action Taken": "Skipped (Null URI)"})
+                        artist_name = ", ".join([a.get('name', 'Unknown') for a in track_obj.get('artists', [])]) if track_obj and track_obj.get('artists') else 'Unknown'
+                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "None", "Track Name": track_name, "Artist Name": artist_name, "Action Taken": "Skipped (Null URI)", "Track URI": "None"})
                         continue
                     
                     uri = track_obj['uri']
                     track_name = track_obj.get('name', 'Unknown')
+                    artist_name = ", ".join([a.get('name', 'Unknown') for a in track_obj.get('artists', [])]) if track_obj.get('artists') else 'Unknown'
                     
                     if is_excluded:
                         total_dropped += 1
-                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "Drop List", "Track URI": uri, "Track Name": track_name, "Action Taken": "Dropped (Exclusion List)"})
+                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "Drop List", "Track Name": track_name, "Artist Name": artist_name, "Action Taken": "Dropped (Exclusion List)", "Track URI": uri})
                         continue
                         
                     israeli_bonus_matched = False
@@ -464,14 +468,14 @@ with tab1:
                     if target:
                         # Mutual Exclusion for Hip Hop
                         if target == "Hip Hop, Rap" and uri in local_existing_uris.get("Israeli Hip Hop", set()):
-                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped (Excluded Sub-genre)"})
+                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track Name": track_name, "Artist Name": artist_name, "Action Taken": "Skipped (Excluded Sub-genre)", "Track URI": uri})
                         elif uri in local_existing_uris[target]:
                             total_skipped += 1
-                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped Duplicate"})
+                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track Name": track_name, "Artist Name": artist_name, "Action Taken": "Skipped Duplicate", "Track URI": uri})
                         else:
                             target_staged_tracks[target].append(uri)
                             local_existing_uris[target].add(uri)
-                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Appended"})
+                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track Name": track_name, "Artist Name": artist_name, "Action Taken": "Appended", "Track URI": uri})
     
                     # --- Parallel Israeli Music Routing ---
                     is_isr, is_fuzzy = is_israeli_track(track_obj)
@@ -484,18 +488,18 @@ with tab1:
                         if target in ["Mizrahi", "Israeli Hip Hop"] or \
                            uri in local_existing_uris.get("Mizrahi", set()) or \
                            uri in local_existing_uris.get("Israeli Hip Hop", set()):
-                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": f"Skipped (Excluded Sub-genre){warning_flag}"})
+                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track Name": track_name, "Artist Name": artist_name, "Action Taken": f"Skipped (Excluded Sub-genre){warning_flag}", "Track URI": uri})
                         else:
                             israeli_bonus_matched = True
                             if uri in local_existing_uris[israeli_target]:
-                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": f"Skipped Duplicate (Bonus: Israeli Music){warning_flag}"})
+                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track Name": track_name, "Artist Name": artist_name, "Action Taken": f"Skipped Duplicate (Bonus: Israeli Music){warning_flag}", "Track URI": uri})
                             else:
                                 target_staged_tracks[israeli_target].append(uri)
                                 local_existing_uris[israeli_target].add(uri)
-                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": f"Appended (Bonus: Israeli Music){warning_flag}"})
+                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track Name": track_name, "Artist Name": artist_name, "Action Taken": f"Appended (Bonus: Israeli Music){warning_flag}", "Track URI": uri})
                             
                     if not target and not israeli_bonus_matched:
-                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "None", "Track URI": uri, "Track Name": track_name, "Action Taken": "Unmapped / Ignored"})
+                        audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "None", "Track Name": track_name, "Artist Name": artist_name, "Action Taken": "Unmapped / Ignored", "Track URI": uri})
     
         progress_bar.progress(1.0, text="Process Complete!")
         return audit_log, target_staged_tracks, global_anomalies
