@@ -32,7 +32,7 @@ GENRE_ROUTING_DICT = {
     "Israeli Hip Hop": ["Israeli Hip Hop", "Israeli Rap"],
     "Reggae": ["Reggae", "Modern Reggae", "Reggae Rock", "Indie Reggae", "West Coast Reggae"],
     "Israeli Music": ["Israeli Music", "Israeli Pop", "Israeli Indie", "Indie IL", "Israeli"],
-    "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "R&B", "Rendb", "RB", "Soul", "Electro Chil", "Electro Chill", "Indie Modern Funk", "Acoustic Folk", "Folk", "Acoustic", "Pop", "Alternative Indie, Rock", "Meditation", "indie rock, pop"],
+    "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "R&B", "Rendb", "RB", "Soul", "Electro Chil", "Electro Chill", "Indie Modern Funk", "Acoustic Folk", "Folk", "Acoustic", "Pop", "Alternative Indie, Rock", "Meditation", "indie rock, pop", "indie soul, country"],
     "Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "House Techno", "Techno", "Tech, Bass House", "Groove Metal", "bass / melodic house"],
     "Hip Hop, Rap": ["Hip Hop", "Rap", "Hip Hop, Rap", "Rap, Hip Hop", "UG Hip Hop", "Underground Hip Hop", "UG Hip Pop", "UG Rap", "Trap", "Dark Trap", "Latin Trap", "Bass Trap", "Hip Pop", "East Coast Hip Hop", "Multigenre Rap", "Dfw Rap", "London Rap", "Westcoast Rap", "West Coast Rap", "Drift Phonk", "Hip Hop Rap", "Hip Pop / Trap", "NYC"],
     "Afrobeats": ["Afrobeats", "Afrobeat", "Dancehall", "Kenyan Drill", "Dancehall Blend"],
@@ -513,9 +513,13 @@ with tab1:
     st.progress(progress_val)
     
     if remaining > 0:
-        c1, c2, c3, c4 = st.columns(4)
+        c_back, c1, c2, c3, c4 = st.columns(5)
         batch_to_run = 0
         
+        if c_back.button("⬅️ Go Back 5", disabled=(st.session_state['current_playlist_index'] == 0)):
+             st.session_state['current_playlist_index'] = max(0, st.session_state['current_playlist_index'] - 5)
+             st.rerun()
+
         if c1.button("Preview Next 5", disabled=(remaining==0)):
             batch_to_run = min(5, remaining)
         if c2.button("Preview Next 10", disabled=(remaining==0)):
@@ -566,7 +570,7 @@ with tab1:
             
         st.subheader("4. Phase B: Execute Batch")
         
-        col_ok, col_cancel = st.columns([1, 4])
+        col_ok, col_refresh, col_cancel = st.columns([2, 2, 4])
         
         with col_ok:
             if st.button("✅ Confirm & Push to Spotify", type="primary"):
@@ -605,6 +609,16 @@ with tab1:
                 time.sleep(1.5)
                 st.rerun()
                 
+        with col_refresh:
+            if st.button("🔄 Refresh Preview"):
+                batch_to_run = st.session_state['pending_batch_size']
+                with st.spinner(f"Simulating Batch ({batch_to_run} playlists) again..."):
+                    batch_log, staged_tracks, full_anomalies = process_mapping(simulate_only=True, batch_size=batch_to_run)
+                    st.session_state['pending_preview'] = batch_log
+                    st.session_state['pending_staged'] = staged_tracks
+                    st.session_state['pending_anomalies'] = full_anomalies
+                    st.rerun()
+
         with col_cancel:
             if st.button("❌ Cancel Batch"):
                 st.session_state['pending_preview'] = []
