@@ -24,19 +24,21 @@ TARGET_PLAYLISTS = {
     "Hip Hop, Rap": "3GiWLHwdkZU9VQ4i1aagWa",
     "Afrobeats": "1XyXp1FRHBRnvxmmhT5Sz6",
     "Mizrahi": "1zcEZURYYKMCvs4rpTB6ti",
-    "Reggaeton": "09QZH7Nlj4vS9Paur6Srcm"
+    "Reggaeton": "09QZH7Nlj4vS9Paur6Srcm",
+    "s3 למיין": "4qYupj1n5KASzFohe5RSmH"
 }
 
 GENRE_ROUTING_DICT = {
     "Israeli Hip Hop": ["Israeli Hip Hop", "Israeli Rap"],
     "Reggae": ["Reggae", "Modern Reggae", "Reggae Rock", "Indie Reggae", "West Coast Reggae"],
-    "Israeli Music": ["Israeli Music", "Israeli Pop", "Israeli Indie", "Indie IL"],
-    "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "Rendb", "RB", "Meditation", "Chill Indie", "Spacial Intro", "Electro Chil", "Indie Modern Funk"],
-    "Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "Mix Gener", "Mix", "Groove Metal", "House Techno"],
-    "Hip Hop, Rap": ["Hip Hop", "Rap", "Hip Hop, Rap", "Rap, Hip Hop", "UG Hip Hop", "Underground Hip Hop", "UG Hip Pop", "Trap", "Dark Trap", "Latin Trap", "Bass Trap", "Hip Pop", "East Coast Hip Hop", "Multigenre Rap", "Dfw Rap", "London Rap", "Westcoast Rap", "West Coast Rap", "Drift Phonk", "Hip Hop Rap", "Hip Pop / Trap"],
-    "Afrobeats": ["Afrobeats", "Afrobeat", "Dancehall", "Kenyan Drill"],
+    "Israeli Music": ["Israeli Music", "Israeli Pop", "Israeli Indie", "Indie IL", "Israeli"],
+    "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "R&B", "Rendb", "RB", "Soul", "Electro Chil", "Electro Chill", "Indie Modern Funk", "Acoustic Folk", "Folk", "Acoustic", "Pop", "Alternative Indie, Rock", "Meditation"],
+    "Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "House Techno", "Techno", "Tech, Bass House", "Groove Metal"],
+    "Hip Hop, Rap": ["Hip Hop", "Rap", "Hip Hop, Rap", "Rap, Hip Hop", "UG Hip Hop", "Underground Hip Hop", "UG Hip Pop", "UG Rap", "Trap", "Dark Trap", "Latin Trap", "Bass Trap", "Hip Pop", "East Coast Hip Hop", "Multigenre Rap", "Dfw Rap", "London Rap", "Westcoast Rap", "West Coast Rap", "Drift Phonk", "Hip Hop Rap", "Hip Pop / Trap", "NYC"],
+    "Afrobeats": ["Afrobeats", "Afrobeat", "Dancehall", "Kenyan Drill", "Dancehall Blend"],
     "Mizrahi": ["Mizrahi", "Mizrachi", "Yemeni Diwan"],
-    "Reggaeton": ["Reggaeton", "Reggaton"]
+    "Reggaeton": ["Reggaeton", "Reggaton"],
+    "s3 למיין": ["Mix", "Mix Gener", "Mixed Genres", "Spacial Intro"]
 }
 
 # --- Parallel Routing Configuration ---
@@ -54,7 +56,7 @@ for entry in RAW_ISRAELI_ARTISTS:
     else:
         ISRAELI_ARTISTS_SET.add(entry.strip().lower())
 
-EXCLUSION_LIST = [g.lower() for g in ["Drum N Base", "Drum N Bass", "DrumNBase", "Uk Dnb", "Dubstep", "Psytrance"]]
+EXCLUSION_LIST = [g.lower() for g in ["Drum N Base", "Drum N Bass", "DrumNBase", "Uk Dnb", "UK DnB", "Dubstep", "Psytrance"]]
 
 # Pre-process routing dictionary for O(1) case-insensitive lookup
 REVERSE_ROUTING = {}
@@ -157,14 +159,16 @@ def chunk_list(lst, n):
         yield lst[i:i + n]
 
 def is_israeli_track(track_obj):
-    """Determines if a track has Hebrew characters or an Israeli artist."""
+    """Determines if a track has Hebrew characters or an Israeli artist.
+       Returns a tuple (is_israeli, is_fuzzy_match), where is_fuzzy_match 
+       is True if matched only by English dictionary name."""
     if not track_obj:
-        return False
+        return False, False
         
     # Check track name for Hebrew characters
     track_name = track_obj.get('name', '')
     if re.search(r'[\u0590-\u05FF]', track_name):
-        return True
+        return True, False
         
     # Check artists
     artists = track_obj.get('artists', [])
@@ -175,13 +179,13 @@ def is_israeli_track(track_obj):
             
         # Check artist name for Hebrew characters
         if re.search(r'[\u0590-\u05FF]', artist_name):
-            return True
+            return True, False
             
         # Check against parsed set 
         if artist_name.strip().lower() in ISRAELI_ARTISTS_SET:
-            return True
+            return True, True
             
-    return False
+    return False, False
 
 # --- Streamlit UI & Logic ---
 
@@ -282,28 +286,86 @@ with tab1:
         
     # 2. Global Checksum Utility
     st.subheader("2. Global Checksum Utility")
-    with st.expander("Run Validation on All Playlists", expanded=False):
-        if st.button("🔍 Run Global Checksum"):
-            with st.spinner("Validating all playlists..."):
-                checksum_results = []
-                for p in all_source_playlists:
-                    desc = p.get('description', '')
+    
+    if "checksum_results" not in st.session_state:
+        st.session_state["checksum_results"] = None
+        
+    def run_global_checksum(force_refresh_id=None):
+        if force_refresh_id and st.session_state["checksum_results"] is not None:
+            # Targeted Refresh: Only update the specific row in the existing state
+            for i, r in enumerate(st.session_state["checksum_results"]):
+                if r["ID"] == force_refresh_id:
+                    try:
+                        fresh_p = sp.playlist(force_refresh_id)
+                        desc = fresh_p.get('description', '')
+                    except:
+                        desc = r.get('Description', '')
+                        
                     parsed = parse_description(desc)
                     if parsed is None:
-                        checksum_results.append({"Playlist": p['name'], "Parsed Sum": "N/A", "Actual Tracks": p['tracks']['total'], "Status": "❌ Missing Counts"})
+                        st.session_state["checksum_results"][i].update({
+                            "Description": desc, "Parsed Sum": "N/A", "Actual Tracks": r['Actual Tracks'], "Status": "❌ Missing Counts"
+                        })
                     else:
                         parsed_sum = sum(g['count'] for g in parsed)
-                        actual_tracks = p['tracks']['total']
+                        actual_tracks = r['Actual Tracks']
                         status = "✅ OK" if parsed_sum == actual_tracks else "❌ Mismatch"
-                        checksum_results.append({"Playlist": p['name'], "Parsed Sum": parsed_sum, "Actual Tracks": actual_tracks, "Status": status})
+                        st.session_state["checksum_results"][i].update({
+                            "Description": desc, "Parsed Sum": parsed_sum, "Actual Tracks": actual_tracks, "Status": status
+                        })
+            return
+
+        # General Sweep: Runs completely from the local cache
+        results = []
+        for p in all_source_playlists:
+            desc = p.get('description', '')
+            parsed = parse_description(desc)
+            
+            if parsed is None:
+                results.append({"ID": p['id'], "Playlist": p['name'], "Description": desc, "Parsed Sum": "N/A", "Actual Tracks": p['tracks']['total'], "Status": "❌ Missing Counts"})
+            else:
+                parsed_sum = sum(g['count'] for g in parsed)
+                actual_tracks = p['tracks']['total']
+                status = "✅ OK" if parsed_sum == actual_tracks else "❌ Mismatch"
+                results.append({"ID": p['id'], "Playlist": p['name'], "Description": desc, "Parsed Sum": parsed_sum, "Actual Tracks": actual_tracks, "Status": status})
+        
+        st.session_state["checksum_results"] = results
+        
+    with st.expander("Run Validation on All Playlists", expanded=True):
+        if st.button("🔍 Run Global Checksum"):
+            with st.spinner("Validating all playlists..."):
+                run_global_checksum()
                 
-                sum_df = pd.DataFrame(checksum_results)
-                st.dataframe(sum_df, use_container_width=True)
-                mismatches = len(sum_df[sum_df["Status"] != "✅ OK"])
-                if mismatches > 0:
-                    st.error(f"Found {mismatches} mismatching/failing playlists that require attention!")
+        if st.session_state["checksum_results"] is not None:
+            results = st.session_state["checksum_results"]
+            mismatches = [r for r in results if r["Status"] != "✅ OK"]
+            
+            if mismatches:
+                st.error(f"Found {len(mismatches)} mismatching/failing playlists that require attention!")
+            else:
+                st.success("All playlists perfectly match their described track counts!")
+                
+            # Display detailed view with refresh buttons
+            st.markdown("### Checksum Details")
+            for r in results:
+                cols = st.columns([2, 4, 1, 1, 1.5, 1])
+                cols[0].write(f"**{r['Playlist']}**")
+                cols[1].caption(r['Description'] if r['Description'] else "*No Description*")
+                cols[2].write(f"Parsed: {r['Parsed Sum']}")
+                cols[3].write(f"Actual: {r['Actual Tracks']}")
+                
+                if r["Status"] == "✅ OK":
+                    cols[4].success(r["Status"])
                 else:
-                    st.success("All playlists perfectly match their described track counts!")
+                    cols[4].error(r["Status"])
+                    
+                # Individual refresh button for this row
+                if cols[5].button("🔄", key=f"refresh_{r['ID']}"):
+                    with st.spinner(f"Refreshing {r['Playlist']}..."):
+                        run_global_checksum(force_refresh_id=r['ID'])
+                        st.rerun()
+            
+            st.divider()
     
     def process_mapping(simulate_only=True, batch_size=2):
         """Core logic to map tracks, handling simulation and execution states for a specific batch slice."""
@@ -373,6 +435,7 @@ with tab1:
                 
                 if not target and not is_excluded:
                     global_anomalies.add(genre_name)
+                    target = "s3 למיין"
                     
                 for _ in range(count):
                     if track_index >= len(tracks):
@@ -411,22 +474,25 @@ with tab1:
                             audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Appended"})
     
                     # --- Parallel Israeli Music Routing ---
-                    if target != "Israeli Music" and is_israeli_track(track_obj):
+                    is_isr, is_fuzzy = is_israeli_track(track_obj)
+                    if target != "Israeli Music" and is_isr:
                         israeli_target = "Israeli Music"
                         
+                        warning_flag = " ⚠️ Review" if is_fuzzy else ""
+
                         # Mutual Exclusion for Israeli Music
                         if target in ["Mizrahi", "Israeli Hip Hop"] or \
                            uri in local_existing_uris.get("Mizrahi", set()) or \
                            uri in local_existing_uris.get("Israeli Hip Hop", set()):
-                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped (Excluded Sub-genre)"})
+                            audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": f"Skipped (Excluded Sub-genre){warning_flag}"})
                         else:
                             israeli_bonus_matched = True
                             if uri in local_existing_uris[israeli_target]:
-                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Skipped Duplicate (Bonus: Israeli Music)"})
+                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": f"Skipped Duplicate (Bonus: Israeli Music){warning_flag}"})
                             else:
                                 target_staged_tracks[israeli_target].append(uri)
                                 local_existing_uris[israeli_target].add(uri)
-                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": "Appended (Bonus: Israeli Music)"})
+                                audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": israeli_target, "Track URI": uri, "Track Name": track_name, "Action Taken": f"Appended (Bonus: Israeli Music){warning_flag}"})
                             
                     if not target and not israeli_bonus_matched:
                         audit_log.append({"Source Playlist": plist_name, "Parsed Genre": genre_name, "Target Playlist": "None", "Track URI": uri, "Track Name": track_name, "Action Taken": "Unmapped / Ignored"})
