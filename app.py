@@ -127,8 +127,9 @@ def get_all_user_playlists(sp):
     return playlists
 
 def get_target_source_playlists(all_playlists):
-    """Filters all playlists to find the 97 target source ones (Aum#201-297) and sorts them numerically."""
-    pattern = re.compile(r'Aum#(20[1-9]|2[1-8][0-9]|29[0-7])')
+    """Filters all playlists to find the target source ones (Week#200-300) and sorts them numerically."""
+    # Matches Week# followed by 200 up to 300
+    pattern = re.compile(r'Week#(2[0-9]{2}|300)')
     matched = []
     for p in all_playlists:
         if p and p.get('name') and pattern.search(p['name']):
@@ -136,7 +137,7 @@ def get_target_source_playlists(all_playlists):
             num = int(pattern.search(p['name']).group(1))
             matched.append((num, p))
             
-    # Sort by the extracted Aum# number
+    # Sort by the extracted Week# number
     matched.sort(key=lambda x: x[0])
     return [p for num, p in matched]
 
@@ -253,7 +254,7 @@ if st.sidebar.button("🔄 Refresh Data from Spotify"):
     st.rerun()
 all_source_playlists = load_source_playlists(sp)
 if not all_source_playlists:
-    st.error("No source playlists matching `Aum#201-...` found.")
+    st.error("No source playlists matching `Week#200-...` found.")
     st.stop()
 
 st.sidebar.success(f"Loaded {len(all_source_playlists)} total Source Playlists.")
@@ -274,14 +275,14 @@ st.session_state.setdefault("pending_anomalies", set())
 if 'target_existing_uris' not in st.session_state:
     st.session_state['target_existing_uris'] = load_target_existing_uris(sp)
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(['🎧 Phase 1: Migration Engine', '🧹 Phase 2: Cross-Playlist Cleanup', '🛡️ Phase 3: Backup & Restore', '📊 Phase 4: Global Playlists Insights', '🌟 Phase 5: SEO & Popularity Optimizer'])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(['🎧 Phase 1: Migration Engine', '🧹 Phase 2: Cross-Playlist Cleanup', '🛡️ Phase 3: Backup & Restore', '📊 Phase 4: Global Playlists Insights', '🌟 Phase 5: SEO & Popularity Optimizer', '🏷️ Phase 6: Rename Season'])
 
 with tab1:
     # 1. Visual Pre-Flight Check
     st.subheader("1. Identified Target Source Playlists")
-    st.markdown("Playlists are correctly sorted chronologically by their `Aum#`.")
+    st.markdown("Playlists are correctly sorted chronologically by their `Week#`.")
     with st.expander("View Source Playlists", expanded=False):
-        df_sources = pd.DataFrame([{"Aum#": int(re.search(r'Aum#(20[1-9]|2[1-8][0-9]|29[0-7])', p['name']).group(1)), "Name": p['name'], "Tracks": p['tracks']['total'], "Description": p.get('description', '')} for p in all_source_playlists])
+        df_sources = pd.DataFrame([{"Week#": int(re.search(r'Week#(2[0-9]{2}|300)', p['name']).group(1)), "Name": p['name'], "Tracks": p['tracks']['total'], "Description": p.get('description', '')} for p in all_source_playlists])
         st.dataframe(df_sources, use_container_width=True)
         
     # 2. Global Checksum Utility
@@ -1022,4 +1023,92 @@ with tab5:
                 
                 st.success(f"Playlist opening has been optimized for SEO! Pinned top {top_x} tracks.")
                 time.sleep(2)
+                st.rerun()
+
+with tab6:
+    st.header("🏷️ Phase 6: Rename Seasonal Playlists")
+    st.markdown("Safely rename playlists specifically for season `200-300` (Currently tracking `Week#`).")
+    
+    if "rename_matches" not in st.session_state:
+        st.session_state["rename_matches"] = []
+    if "rename_index" not in st.session_state:
+        st.session_state["rename_index"] = 0
+        
+    if st.button("🔍 Scan for Playlists (Week#200-300)", type="primary"):
+        with st.spinner("Scanning all playlists..."):
+            all_pls = get_all_user_playlists(sp)
+            # Find playlists with Week#200 to Week#300
+            pattern = re.compile(r'Week#(2[0-9]{2}|300)')
+            matches = []
+            for p in all_pls:
+                if p and p.get('name'):
+                    name = p['name']
+                    if pattern.search(name):
+                        # The user already renamed them, so for now we just list them or prepare for next step
+                        # We'll just set New Name to be the same so the table doesn't break
+                        new_name = name 
+
+                        matches.append({
+                            "ID": p['id'],
+                            "Old Name": name,
+                            "New Name": new_name
+                        })
+            
+            if matches:
+                # sort by the number in the aum#
+                matches.sort(key=lambda x: int(pattern.search(x['Old Name']).group(1)))
+                st.session_state["rename_matches"] = matches
+                st.session_state["rename_index"] = 0
+                st.success(f"Found {len(matches)} playlists matching criteria!")
+                time.sleep(1)
+            else:
+                st.session_state["rename_matches"] = []
+                st.session_state["rename_index"] = 0
+                st.warning("No matches found in your account.")
+            st.rerun()
+
+    matches = st.session_state.get("rename_matches", [])
+    idx = st.session_state.get("rename_index", 0)
+
+    if matches:
+        st.divider()
+        st.markdown(f"**Total identified:** `{len(matches)}` | **Completed:** `{idx}`")
+        progress_val = min(1.0, idx / len(matches))
+        st.progress(progress_val)
+        
+        if idx < len(matches):
+            batch = matches[idx:idx+5]
+            st.subheader(f"Current Batch (Playlists {idx+1} to {idx+len(batch)})")
+            
+            # Display preview table
+            df_batch = pd.DataFrame(batch).drop(columns=["ID"])
+            st.dataframe(df_batch, use_container_width=True)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("✅ Approve & Rename Batch on Spotify", type="primary"):
+                    with st.spinner("Renaming batch..."):
+                        for item in batch:
+                            sp.playlist_change_details(item['ID'], name=item['New Name'])
+                            time.sleep(0.15)
+                        st.session_state["rename_index"] += len(batch)
+                        st.success("Batch renamed successfully!")
+                        time.sleep(1)
+                        st.rerun()
+            with col2:
+                if st.button("⏭️ Skip Batch"):
+                    st.session_state["rename_index"] += len(batch)
+                    st.rerun()
+                    
+            with col3:
+                if st.button("❌ Cancel / Reset", type="secondary"):
+                    st.session_state["rename_matches"] = []
+                    st.session_state["rename_index"] = 0
+                    st.rerun()
+                
+        else:
+            st.success("🎉 All batches processed!")
+            if st.button("🔄 Reset"):
+                st.session_state["rename_matches"] = []
+                st.session_state["rename_index"] = 0
                 st.rerun()

@@ -68,6 +68,6 @@ SPOTIPY_REDIRECT_URI='http://localhost:8080'
 
 ### 4. Run the Application
 ```bash
-streamlit run app.py
+python -m streamlit run app.py
 ```
 The application will launch in your default web browser. On the first run, Spotify will prompt you to authorize the app.
