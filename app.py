@@ -14,34 +14,67 @@ from datetime import datetime
 # Load environment variables (Client ID, Secret, Redirect URI)
 load_dotenv()
 
-# --- Configuration Definitions ---
 TARGET_PLAYLISTS = {
-    "Israeli Hip Hop": "1Ycl9i5uMtniDKs0jKvJOe",
-    "Reggae": "3obWJRscGGN4QvmeLZK7US",
-    "Israeli Music": "70y6Euzv1eUaYgR6Qzoo2r",
-    "Country, Indie": "6QZz84AaYPlD1ALgrVacP4",
-    "Melodic House": "7F8Bea5phhXrDwAx5rETPg",
-    "Hip Hop, Rap": "3GiWLHwdkZU9VQ4i1aagWa",
-    "Afrobeats": "1XyXp1FRHBRnvxmmhT5Sz6",
-    "Mizrahi": "1zcEZURYYKMCvs4rpTB6ti",
-    "Reggaeton": "09QZH7Nlj4vS9Paur6Srcm",
-    "s3 למיין": "4qYupj1n5KASzFohe5RSmH"
+    "♩ Israeli Hip Hop": "1Ycl9i5uMtniDKs0jKvJOe",
+    "♩ Reggae": "3obWJRscGGN4QvmeLZK7US",
+    "♩ Israeli Music": "70y6Euzv1eUaYgR6Qzoo2r",
+    "♩ 𝘐𝘴𝘳𝘢𝘦𝘭𝘪 𝘗𝘰𝘱 ": "0JJ482EewHlIGNnKu9xGXa",
+    "♩ Country, Indie": "6QZz84AaYPlD1ALgrVacP4",
+    "♩ Melodic House": "7F8Bea5phhXrDwAx5rETPg",
+    "♩ Hip Hop, Rap": "3GiWLHwdkZU9VQ4i1aagWa",
+    "♩ Afrobeats": "1XyXp1FRHBRnvxmmhT5Sz6",
+    "♩ Mizrahi": "1zcEZURYYKMCvs4rpTB6ti",
+    "♩ Reggaeton": "09QZH7Nlj4vS9Paur6Srcm",
+    "♩ s3 למיין": "4qYupj1n5KASzFohe5RSmH"
 }
 
 GENRE_ROUTING_DICT = {
-    "Israeli Hip Hop": ["Israeli Hip Hop", "Israeli Rap"],
-    "Reggae": ["Reggae", "Modern Reggae", "Reggae Rock", "Indie Reggae", "West Coast Reggae"],
-    "Israeli Music": ["Israeli Music", "Israeli Pop", "Israeli Indie", "Indie IL", "Israeli"],
-    "Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "R&B", "Rendb", "RB", "Soul", "Electro Chil", "Electro Chill", "Indie Modern Funk", "Acoustic Folk", "Folk", "Acoustic", "Pop", "Alternative Indie, Rock", "Meditation", "indie rock, pop", "indie soul, country", "indie folk", "lofi", "folk", "acoustic"],
-    "Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "House Techno", "Techno", "Tech, Bass House", "Groove Metal", "bass / melodic house"],
-    "Hip Hop, Rap": ["Hip Hop", "Rap", "Hip Hop, Rap", "Rap, Hip Hop", "UG Hip Hop", "Underground Hip Hop", "UG Hip Pop", "UG Rap", "Trap", "Dark Trap", "Latin Trap", "Bass Trap", "Hip Pop", "East Coast Hip Hop", "Multigenre Rap", "Dfw Rap", "London Rap", "Westcoast Rap", "West Coast Rap", "Drift Phonk", "Hip Hop Rap", "Hip Pop / Trap", "NYC"],
-    "Afrobeats": ["Afrobeats", "Afrobeat", "Dancehall", "Kenyan Drill", "Dancehall Blend"],
-    "Mizrahi": ["Mizrahi", "Mizrachi", "Yemeni Diwan"],
-    "Reggaeton": ["Reggaeton", "Reggaton"],
-    "s3 למיין": ["Mix", "Mix Gener", "Mixed Genres", "Spacial Intro"]
+    "♩ Israeli Hip Hop": ["Israeli Hip Hop", "Israeli Rap"],
+    "♩ Reggae": ["Reggae", "Modern Reggae", "Reggae Rock", "Indie Reggae", "West Coast Reggae"],
+    "♩ Israeli Music": ["Israeli Music", "Israeli Indie", "Indie IL", "Israeli"],
+    "♩ 𝘐𝘴𝘳𝘢𝘦𝘭𝘪 𝘗𝘰𝘱 ": ["Israeli Pop"],
+    "♩ Country, Indie": ["Country", "Country Pop", "Indie", "Indie Pop", "American Indie", "Indie Folk", "Pop, Folk", "Folk, Pop", "Indie Soul", "Soul Indie", "Retro soul", "Modern Indie Folk", "Modern Indie", "Indie Rock", "Alternative Indie", "Alternative Pop", "Acoustic Soul", "Folk Acoustic", "Folk-Soul", "Pop Soul", "Lo-Fi", "R And B", "R&B", "Rendb", "RB", "Soul", "Electro Chil", "Electro Chill", "Indie Modern Funk", "Acoustic Folk", "Folk", "Acoustic", "Pop", "Alternative Indie, Rock", "Meditation", "indie rock, pop", "indie soul, country", "indie folk", "lofi", "folk", "acoustic"],
+    "♩ Melodic House": ["Melodic House", "Melodic Techno", "Tropical House", "Organic House", "Indie House", "Tech House", "Techno House", "Bass House", "Base House", "Funky Bass House", "Edm", "EDM House", "Electro House", "Funky House", "Fusion House", "Electropop", "Brazilian Edm", "Mix House", "Groove House", "House", "House Techno", "Techno", "Tech, Bass House", "Groove Metal", "bass / melodic house"],
+    "♩ Hip Hop, Rap": ["Hip Hop", "Rap", "Hip Hop, Rap", "Rap, Hip Hop", "UG Hip Hop", "Underground Hip Hop", "UG Hip Pop", "UG Rap", "Trap", "Dark Trap", "Latin Trap", "Bass Trap", "Hip Pop", "East Coast Hip Hop", "Multigenre Rap", "Dfw Rap", "London Rap", "Westcoast Rap", "West Coast Rap", "Drift Phonk", "Hip Hop Rap", "Hip Pop / Trap", "NYC"],
+    "♩ Afrobeats": ["Afrobeats", "Afrobeat", "Dancehall", "Kenyan Drill", "Dancehall Blend"],
+    "♩ Mizrahi": ["Mizrahi", "Mizrachi", "Yemeni Diwan"],
+    "♩ Reggaeton": ["Reggaeton", "Reggaton"],
+    "♩ s3 למיין": ["Mix", "Mix Gener", "Mixed Genres", "Spacial Intro"]
 }
 
 # --- Parallel Routing Configuration ---
+STATS_FILE = "playlist_insights_cache.json"
+AUDIO_FEATURES_CACHE = "audio_features_cache.json"
+
+# --- Harmonic System Mapping (Spotify Key/Mode -> Camelot) ---
+# Spotify Key: 0=C, 1=C#...11=B. Mode: 0=Minor, 1=Major
+CAMELOT_DICT = {
+    (0, 1): "8B",  # C Major
+    (0, 0): "5A",  # C Minor
+    (1, 1): "3B",  # Db Major
+    (1, 0): "12A", # C# Minor
+    (2, 1): "10B", # D Major
+    (2, 0): "7A",  # D Minor
+    (3, 1): "5B",  # Eb Major
+    (3, 0): "2A",  # D# Minor
+    (4, 1): "12B", # E Major
+    (4, 0): "9A",  # E Minor
+    (5, 1): "7B",  # F Major
+    (5, 0): "4A",  # F Minor
+    (6, 1): "2B",  # F# Major
+    (6, 0): "11A", # F# Minor
+    (7, 1): "9B",  # G Major
+    (7, 0): "6A",  # G Minor
+    (8, 1): "4B",  # Ab Major
+    (8, 0): "1A",  # G# Minor
+    (9, 1): "11B", # A Major
+    (9, 0): "8A",  # A Minor
+    (10, 1): "6B", # Bb Major
+    (10, 0): "3A", # Bb Minor
+    (11, 1): "1B", # B Major
+    (11, 0): "10A" # B Minor
+}
+
 RAW_ISRAELI_ARTISTS = [
     "2t", "ACCULBED", "Adam Ten (אדם טן)", "ASHER SWISSA (סקאזי)", "Asal (אסל)", "ATAR MAYNER (עטר מיינר)", "BĘÃTFÓØT (ביטפוט)", "BLNKY", "DE SOFFER (די סופר)", "E-Z (איזי)", "ECHO (אקו)", "EVILEAF", "Folly Tree (פולי טרי)", "Full Trunk (פול טראנק)", "Garden City Movement", "iogi (יוגב גלוסמן)", "iRO", "ILANZE", "Jacob (IL)", "JAMAA (ג'אמע)", "JETFIRE (ג'טפייר)", "JIGI", "Kiki Malinki (קיקי מלינקי)", "Kintsugi (קינצוגי)", "KLIN SADYLE (קלין סדייל)", "Koevary (קובארי)", "Lava Dome", "Mita Gami (מיטה גאמי)", "N-47", "OMRI. (עומרי.)", "PA'AM (פעם)", "REGINI", "ROMI (רומי)", "ROUSSO (רוסו)", "Saxtracks", "SHIRU (שירו)", "Soft Deep (סופט דיפ)", "Stargo (סטארגו)", "Sync (סינק)", "The White Screen (המסך הלבן)", "Vulkan (וולקן)", "YOYO (יויו)", "אבי אבורומי", "אביב בכר", "אביהו פנחסוב (מועדון הקצב של אביהו פנחסוב)", "אביחי נפתלי", "אביתר שמחי", "אבנר טואג", "אברהם איילאו", "אברהם לגסה", "אברי ג'י", "אגם בוחבוט", "אדמ", "אדיר גץ", "אודיה", "אודימן (Hoodyman)", "אופיר מלול", "אופק אדנק", "אופק נחמן", "אוראל (Orel)", "אורי סבאן", "אורי שוחט", "אורית טשומה", "אורטגה", "אורן ברזילי", "איזי (E-Z)", "איציק שמלי", "איתי גל (Itai Gal)", "איתי גלו (Itay Galo)", "איתי לוי", "איתמר יניב", "איתמר פיש", "אלדד ציטרין", "אלונה טל", "אלי חולי", "אליאור שמש", "אליעד", "אליעזר", "אלמאליכ (Almalik)", "אלמוג גוזלן", "אמיר בניון", "אמיר שדה", "אמסלם", "אנה זק", "אנדרדוג (Underdogg)", "אניס נקש", "אסקר (ASKER)", "ארז לב ארי", "אריאלה ברוך", "אשכנז (Ashken)", "אתל (Ethel)", "באלישג", "בום פם", "בוסקילז (Booskills)", "ביג ג'יי (Big-J)", "ביג סיזו (Big Sezo)", "בל דורון", "בן אל תבורי", "בן מירן", "בנאלי (Beneli)", "בר אלפנדרי", "בראדון (Bar Adon)", "ברי סחרוף", "בתאל סבח", "בתיאל סיסאי", "ג'יין בורדו", "ג'ני פנקין", "גיא מוזס", "גיא נוימן (Guy newman)", "גיא ויהל", "גיאגיא", "גל אדם", "גלדי (Galdi)", "גלעד כהנא", "גון בן ארי", "גורליק (Gorlik)", "גילי אסרף", "דוד ד'אור", "דוד לב ארי", "דוד מעיין", "דוד בן ארזה", "דודא", "דודו פארוק", "דון ג'וזף (Dawn Joseph.)", "דורון אזולאי", "דימה XR", "דינג'אן", "דן זיתון", "דניאל ברזילאי", "דניאל חן", "דניאל רובין", "דותן סיטבון", "הדר הלל", "היוצרים", "הילה פאר", "הילה רוח", "הצל", "התאומים (Twins DJ's)", "התקווה 6", "המשקפיים של נויפלד", "וולקן (Vulkan)", "ויוו (Vivo)", "וייזי (Vaizi)", "ויק אוחנה ז'אן", "זהבי (Zehavi)", "זיו", "זליג", "חיים אוליאל", "חיים משה", "חייאתי (Haya Avichar)", "חן פורתי", "חני מסלה", "חסן MC", "טהר", "טוכטי (Tochti)", "טונה", "טל כרמי", "טליסמאן", "טוקסיקו (Toxico)", "תום גפן", "תומר ורסצ'ה", "תומר יוסף", "תומר ישעיהו", "יא נה (Ya-Ne)", "יואב לפיד", "יוני בלוך", "יוני דויטש", "יונתן קלימי", "יוסי שטרית", "יושי", "יעל כהן", "יפעת בר סלע", "יפעת נטוביץ", "ירין פרימק", "ישי ריבו", "כהן", "כליפי (Kalifi)", "כפיר עזרן", "כרקוקלי", "לאה שבת", "לורן פלד", "ליאור נרקיס", "ליעד מאיר", "ליעם חכמון", "לירון עמרם", "ליר (LIR)", "לרוז (Laroz)", "מאי ויצמן", "מאי טוויק", "מאור אדרי", "מאור אלוש", "מאור אשכנזי", "מאיה בוסקילה", "מושיקו מור", "מור", "מורן מזור", "מיכאל רפאל", "מיכל זנדני", "מיקדו (Mikado)", "מיקה דוארי", "מיקה אלטמן!", "מיקי (Miki)", "מיש בז'רנו", "מירב הלינגר", "מיסטרמיס (Mistermiss)", "מק פיטוסי (Mc fitusi)", "נוגה ארז", "נוי פדלון", "נויה אוזן", "נוימן", "נועה קירל", "נועה שאואט", "נופר סלמאן", "נטורל (Natural)", "נינה קלור", "ניצן איזנברג", "נמש", "נרקיס", "נסרין קדרי", "נתלי", "סאבלימינל", "סבסטיאן XL", "סגול 59", "סול ספשיאל (Soul Special)", "סולטי (Salty)", "סידי (Sidi)", "סיוון", "סיון טלמור", "סימה נון", "סלים פים (Slimfim)", "ספיר סבן", "סטטיק", "סטפן לגר", "עברי לידר", "עדן בן זקן", "עדן דרסו", "עדן חסון", "עדן מאירי", "עומר אדם", "עומר מושקוביץ", "עומר נצר", "עומרי פילס", "עומרי 69 סגל", "עומרי סבח", "עידו בן דב", "עידו בי (Ido B)", "עידו מימון", "עידן חביב (עידן רפאל חביב)", "עידן צ'או", "עידן רייכל", "עילי בוטנר", "עלמה גוב", "עמיר בניון", "ענבל רז", "ענבר", "ערן יוסף", "ערן צור", "פאס (Fass)", "פטריק סבג", "פלד", "צגאי בוי", "צוקוש", "ציון ברוך", "ציון גולן", "צליל דנין", "צפריר", "קאפח", "קובי פרץ", "קורל ביסמוט", "קותימאן", "קרמזל (Karmazel)", "רביד פלוטניק", "רביב כנר", "רואי אדם", "רובי פאייר (Roby Fayer)", "רון בוחניק", "רון בי (Ron B)", "רון חיון", "רון כהן", "רון נשר", "רון פרץ", "רון פרטוק (ron.partuk)", "רונה קינן", "רוני דלומי", "רוני חבר", "רועי ריק", "רועי סנדלר", "רומן הולק", "רוי סופר (Royal Sopher)", "ריקו (Rico)", "ריף כהן", "רותם כהן", "רותם דורון", "רן דנקר", "שאזאמאט", "שגב", "שגיא דהן", "שחר יוסף", "שחר סאול", "שי בלנקו", "שי נחייסי", "שי (Shae)", "שילה אליה", "שירי מימון", "שירוטו (Shiroto)", "שיר גבאי", "שיר דוד גדסי", "שירה בן שמחון", "שירה זלוף", "שירה מלכה", "שירה מור", "שירת מפונים", "שירז אברהם", "שקל", "שלי ארצ'ר", "שלי פרל", "שריי אדר", "שרק (ShrekDiMC)", "שרית חדד", "ששון איפרם שאולוב", "תמר יהלומי", "תמר ריילי"
 ]
@@ -112,18 +145,34 @@ def parse_description(description):
                 
     return parsed
 
-def get_all_user_playlists(sp):
-    """Fetches ALL user playlists with pagination to bypass 1000+ limits."""
+def get_all_user_playlists(_sp):
+    """Fetches ALL user playlists with pagination to bypass 1000+ limits. Includes safety limits."""
     playlists = []
     offset = 0
-    while True:
-        results = sp.current_user_playlists(limit=50, offset=offset)
-        if not results['items']:
-            break
-        playlists.extend(results['items'])
-        if len(results['items']) < 50:
-            break
-        offset += len(results['items'])
+    max_fetches = 100 # Safety limit: max 5000 playlists
+    fetches = 0
+    
+    while fetches < max_fetches:
+        try:
+            results = _sp.current_user_playlists(limit=50, offset=offset)
+            if not results or not results.get('items'):
+                break
+            playlists.extend(results['items'])
+            if len(results['items']) < 50:
+                break
+            offset += len(results['items'])
+            fetches += 1
+        except spotipy.SpotifyException as e:
+            if e.http_status == 429:
+                st.error("⛔ Spotify Rate Limit Reached! (Error 429: Too Many Requests). Spotify has temporarily blocked this application's access. Please wait before refreshing.")
+                st.stop()
+            else:
+                st.error(f"Spotify API Error fetching playlists: {e}")
+                st.stop()
+        except Exception as e:
+            st.error(f"Error fetching playlists at offset {offset}: {e}")
+            st.stop()
+            
     return playlists
 
 def get_target_source_playlists(all_playlists):
@@ -141,18 +190,89 @@ def get_target_source_playlists(all_playlists):
     matched.sort(key=lambda x: x[0])
     return [p for num, p in matched]
 
+def fetch_audio_features_with_cache(sp, uris):
+    """
+    Fetches audio features for a list of URIs. uses a local JSON cache to avoid rate limits.
+    Spotify limits audio_features to 100 URIs per request.
+    """
+    if not uris:
+        return {}
+        
+    cache_path = AUDIO_FEATURES_CACHE
+    cache_data = {}
+    
+    # 1. Load existing cache
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+        except Exception:
+            cache_data = {}
+            
+    # 2. Identify missing URIs
+    missing_uris = [uri for uri in uris if uri not in cache_data]
+    
+    # 3. Fetch missing URIs in batches of 100
+    if missing_uris:
+        # Deduplicate to prevent API errors
+        missing_uris = list(set(missing_uris)) 
+        
+        for i in range(0, len(missing_uris), 100):
+            batch = missing_uris[i:i+100]
+            try:
+                features = sp.audio_features(batch)
+                
+                # Zip and update cache
+                for uri, feature in zip(batch, features):
+                    if feature: # Sometimes spotify returns None for local files
+                        cache_data[uri] = {
+                            "energy": feature.get("energy", 0.5),
+                            "key": feature.get("key", 0),
+                            "mode": feature.get("mode", 1)
+                        }
+                    else:
+                        # Dummy fallback to prevent repeated API calls
+                        cache_data[uri] = {"energy": 0.5, "key": 0, "mode": 1}
+                        
+            except Exception as e:
+                st.error(f"Error fetching audio features: {e}")
+                
+        # 4. Save updated cache back to disk
+        try:
+            with open(cache_path, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, indent=4)
+        except Exception:
+            pass
+            
+    # 5. Build and return the requested sub-dictionary
+    result = {uri: cache_data.get(uri) for uri in uris if uri in cache_data}
+    return result
+
 def get_all_playlist_tracks(sp, playlist_id):
-    """Fetches ALL tracks from a playlist, handling pagination."""
+    """Fetches ALL tracks from a playlist, handling pagination and preventing hard loops."""
     tracks = []
     offset = 0
-    while True:
-        results = sp.playlist_items(playlist_id, limit=100, offset=offset)
-        if not results['items']:
+    max_fetches = 100 # Safety limit: Max 10,000 tracks per playlist
+    fetches = 0
+    
+    while fetches < max_fetches:
+        try:
+            results = sp.playlist_items(playlist_id, limit=100, offset=offset)
+            if not results or not results.get('items'):
+                break
+            tracks.extend(results['items'])
+            if len(results['items']) < 100:
+                break
+            offset += len(results['items'])
+            fetches += 1
+        except spotipy.exceptions.SpotifyException as e:
+            # Handle specific Spotify API errors (e.g., 404, rate limits)
+            print(f"Spotify API Error fetching tracks for {playlist_id} at offset {offset}: {e}")
             break
-        tracks.extend(results['items'])
-        if len(results['items']) < 100:
+        except Exception as e:
+            print(f"Unexpected error fetching tracks for {playlist_id} at offset {offset}: {e}")
             break
-        offset += len(results['items'])
+            
     return tracks
 
 def chunk_list(lst, n):
@@ -214,25 +334,21 @@ if 'sp' not in st.session_state:
                 try:
                     code = sp_oauth.parse_response_code(auth_code)
                     sp_oauth.get_access_token(code)
-                    st.session_state['sp'] = spotipy.Spotify(auth_manager=sp_oauth)
+                    st.session_state['sp'] = spotipy.Spotify(auth_manager=sp_oauth, requests_timeout=5, status_retries=0)
                     st.success("Successfully authenticated!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Authentication failed: {e}")
             st.stop()
         else:
-            st.session_state['sp'] = spotipy.Spotify(auth_manager=sp_oauth)
+            st.session_state['sp'] = spotipy.Spotify(auth_manager=sp_oauth, requests_timeout=5, status_retries=0)
     except Exception as e:
         st.error(f"OAuth initialization failed. Make sure your .env variables are set. Details: {e}")
         st.stop()
 
 sp = st.session_state['sp']
 
-# Caching the heavy initial API calls so the UI doesn't lag on button clicks
-@st.cache_data(show_spinner="Fetching 1000+ playlists from Spotify API...")
-def load_source_playlists(_sp):
-    all_pls = get_all_user_playlists(_sp)
-    return get_target_source_playlists(all_pls)
+
 
 @st.cache_data(show_spinner="Fetching target deduplication data...")
 def load_target_existing_uris(_sp):
@@ -251,8 +367,22 @@ def load_target_existing_uris(_sp):
 st.sidebar.header("Status")
 if st.sidebar.button("🔄 Refresh Data from Spotify"):
     st.cache_data.clear()
+    if 'global_playlists' in st.session_state:
+        del st.session_state['global_playlists']
     st.rerun()
-all_source_playlists = load_source_playlists(sp)
+
+# 1. Fetch Global Playlists ONCE into session state to prevent API exhaustion and UI hanging
+if 'global_playlists' not in st.session_state:
+    with st.spinner("Fetching 1000+ playlists from Spotify API..."):
+        st.session_state['global_playlists'] = get_all_user_playlists(sp)
+
+# 2. Derive Target Playlists from global state
+@st.cache_data(show_spinner=False)
+def filter_source_playlists(all_pls):
+    return get_target_source_playlists(all_pls)
+
+all_source_playlists = filter_source_playlists(st.session_state['global_playlists'])
+
 if not all_source_playlists:
     st.error("No source playlists matching `Week#200-...` found.")
     st.stop()
@@ -654,7 +784,7 @@ with tab2:
     st.markdown("Safely remove tracks from **Playlist A** that already exist in **Playlist B**.")
     
     # Fetch all user playlists to populate dropdowns
-    all_user_playlists = get_all_user_playlists(sp)
+    all_user_playlists = st.session_state['global_playlists']
     playlist_options = {p['name']: p['id'] for p in all_user_playlists}
     
     col1, col2 = st.columns(2)
@@ -714,23 +844,49 @@ with tab2:
                 
     if st.session_state.get('cleanup_uris'):
         st.divider()
-        st.warning(f"Found {len(st.session_state['cleanup_uris'])} overlapping tracks ready for deletion.")
-        st.dataframe(pd.DataFrame(st.session_state['cleanup_overlap']), use_container_width=True)
+        st.warning(f"Found {len(st.session_state['cleanup_uris'])} overlapping tracks ready for review.")
+        
+        # Build DataFrame and add the exclusion boolean column
+        df_overlap = pd.DataFrame(st.session_state['cleanup_overlap'])
+        if "Keep (Don't Delete)" not in df_overlap.columns:
+            df_overlap.insert(0, "Keep (Don't Delete)", False)
+            
+        st.markdown("**Review the overlapping tracks below. Check the box if you want to KEEP the track in Playlist A.**")
+        
+        # Display as interactive data editor
+        edited_df = st.data_editor(
+            df_overlap,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Keep (Don't Delete)": st.column_config.CheckboxColumn(
+                    "Keep (Don't Delete)",
+                    help="Select this to protect the track from being deleted.",
+                    default=False,
+                )
+            }
+        )
         
         col_exec1, col_exec2 = st.columns([1, 4])
         
+        # Filter URIs based on user selection in the data_editor
+        final_uris_to_delete = edited_df[edited_df["Keep (Don't Delete)"] == False]["URI"].tolist()
+        
         with col_exec1:
-            if st.button(f"🗑️ Delete {len(st.session_state['cleanup_uris'])} Tracks", type="primary"):
-                with st.spinner("Deleting tracks from Playlist A..."):
-                    uris = st.session_state['cleanup_uris']
-                    playlist_id_to_clean = st.session_state['cleanup_a_id']
-                    
-                    # Delete in chunks of 100
-                    for chunk in chunk_list(uris, 100):
-                        sp.playlist_remove_all_occurrences_of_items(playlist_id_to_clean, chunk)
-                        time.sleep(0.5)
+            if st.button(f"🗑️ Delete {len(final_uris_to_delete)} Tracks", type="primary"):
+                if not final_uris_to_delete:
+                    st.warning("No tracks selected for deletion (All tracks are marked to Keep).")
+                else:
+                    with st.spinner("Deleting selected tracks from Playlist A..."):
+                        playlist_id_to_clean = st.session_state['cleanup_a_id']
                         
-                st.success("Successfully deleted overlapping tracks!")
+                        # Delete in chunks of 100
+                        for chunk in chunk_list(final_uris_to_delete, 100):
+                            sp.playlist_remove_all_occurrences_of_items(playlist_id_to_clean, chunk)
+                            time.sleep(0.5)
+                            
+                    st.success(f"Successfully deleted {len(final_uris_to_delete)} overlapping tracks!")
+                    
                 st.session_state['cleanup_uris'] = []
                 st.session_state['cleanup_overlap'] = []
                 st.session_state['cleanup_a_id'] = None
@@ -948,67 +1104,445 @@ with tab4:
     else:
         st.info("Click 'Fast Sync' above to load your playlists.")
 
+# --- SEQUENCE STRATEGY FUNCTIONS (PHASE 5) ---
+import math
+import random
+
+def apply_rollercoaster_wave_sort(tracks_data):
+    if not tracks_data: return []
+    n = len(tracks_data)
+    w = max(1, n // 40) # 1 wave per ~40 tracks
+    
+    # 1. Generate Sine Wave targets for Energy (0.2 to 0.9 range)
+    # T(i) = 0.55 + 0.35 * sin(2*pi * W * i/N)
+    targets = []
+    for i in range(n):
+        target_energy = 0.55 + 0.35 * math.sin(2 * math.pi * w * i / max(1, n))
+        targets.append({'index': i, 'target_energy': target_energy})
+        
+    # We want to fill the most extreme targets first (highest peaks and lowest valleys)
+    # so we give them the best matching songs.
+    targets.sort(key=lambda x: abs(x['target_energy'] - 0.55), reverse=True)
+    
+    # We will pick from a pool of tracks
+    pool = list(tracks_data)
+    result = [None] * n
+    
+    for t_data in targets:
+        target_idx = t_data['index']
+        target_eng = t_data['target_energy']
+        
+        best_track_idx = -1
+        best_cost = float('inf')
+        
+        # We need a Weighted Distance Function:
+        # Cost = |TargetEnergy - TrackEnergy|*100 - TrackScore
+        # Lower cost is better. We want Energy match, but we also want High Scores.
+        for j, track in enumerate(pool):
+            track_eng = track.get("Energy ⚡", 0.5)
+            track_score = track.get("Algorithm Score 🏅", 0)
+            
+            cost = abs(target_eng - track_eng) * 100.0 - track_score
+            if cost < best_cost:
+                best_cost = cost
+                best_track_idx = j
+                
+        # Assign best track to this slot, remove from pool
+        result[target_idx] = pool.pop(best_track_idx)
+        
+    return [r for r in result if r is not None]
+
+def apply_hit_interleave_sort(tracks_data):
+    if not tracks_data: return []
+    sorted_tracks = sorted(tracks_data, key=lambda x: x.get("Algorithm Score 🏅", 0), reverse=True)
+    n = len(sorted_tracks)
+    
+    split_a = max(1, int(n * 0.2))
+    split_b = max(1, int(n * 0.7))
+    
+    tier_a = sorted_tracks[:split_a]
+    tier_b = sorted_tracks[split_a:split_b]
+    tier_c = sorted_tracks[split_b:]
+    
+    random.shuffle(tier_a)
+    random.shuffle(tier_b)
+    random.shuffle(tier_c)
+    
+    result = []
+    pattern = ['A', 'B', 'B', 'C', 'B', 'B']
+    idx = 0
+    
+    while len(result) < n:
+        ptn = pattern[idx % len(pattern)]
+        idx += 1
+        
+        if ptn == 'A' and tier_a: result.append(tier_a.pop(0))
+        elif ptn == 'B' and tier_b: result.append(tier_b.pop(0))
+        elif ptn == 'C' and tier_c: result.append(tier_c.pop(0))
+        elif tier_a: result.append(tier_a.pop(0))
+        elif tier_b: result.append(tier_b.pop(0))
+        elif tier_c: result.append(tier_c.pop(0))
+            
+    return result
+
+def apply_csp_flow_sort(tracks_data):
+    if not tracks_data: return []
+    # Advanced Greedy approach: Minimize artist clumping AND ensure harmonic/energy flow
+    pool = sorted(tracks_data, key=lambda x: x.get("Algorithm Score 🏅", 0), reverse=True)
+    result = []
+    
+    # 1. Cold Start: Always start with the absolute best track
+    current_track = pool.pop(0)
+    result.append(current_track)
+    recent_artists = [a for a in current_track.get("Artist", "").split(", ")]
+    
+    # Helper for Camelot Distance
+    def camelot_distance(c1, c2):
+        if c1 == "Unknown" or c2 == "Unknown": return 0
+        try:
+            # Parse '8A' -> 8, 'A'
+            num1, letter1 = int(c1[:-1]), c1[-1]
+            num2, letter2 = int(c2[:-1]), c2[-1]
+            
+            # Distance on the wheel (1 to 12)
+            dist_num = min(abs(num1 - num2), 12 - abs(num1 - num2))
+            # Distance in mode (A to B)
+            dist_letter = 1 if letter1 != letter2 else 0
+            
+            # Perfect match: 0
+            if dist_num == 0 and dist_letter == 0: return 0
+            # Compatible match (same mode, adjacent num OR same num, different mode): 1
+            if (dist_num == 1 and dist_letter == 0) or (dist_num == 0 and dist_letter == 1): return 1
+            # Clash: > 1
+            return dist_num + dist_letter
+        except:
+            return 2 # Default clash penalty if parsing fails
+            
+    while pool:
+        best_idx = 0
+        best_flow_score = -float('inf')
+        lookahead = min(20, len(pool))
+        
+        current_energy = current_track.get("Energy ⚡", 0.5)
+        current_camelot = current_track.get("Camelot 🎵", "Unknown")
+        
+        for i in range(lookahead):
+            candidate = pool[i]
+            score = candidate.get("Algorithm Score 🏅", 0)
+            c_energy = candidate.get("Energy ⚡", 0.5)
+            c_camelot = candidate.get("Camelot 🎵", "Unknown")
+            
+            penalty = 0
+            
+            # Constraint 1: Artist Clumping
+            for a in candidate.get("Artist", "").split(", "):
+                if a in recent_artists:
+                    penalty += 50
+                    
+            # Constraint 2: Energy Flow (Don't drop/spike more than 0.2)
+            energy_diff = abs(current_energy - c_energy)
+            if energy_diff > 0.2:
+                penalty += 50
+                
+            # Constraint 3: Harmonic Flow (Camelot Wheel)
+            cam_dist = camelot_distance(current_camelot, c_camelot)
+            if cam_dist == 0:
+                penalty -= 10 # Bonus for perfect key match
+            elif cam_dist == 1:
+                penalty -= 5  # Bonus for adjacent harmonic match
+            else:
+                penalty += (cam_dist * 5) # Penalty for harmonic clash
+                
+            flow_score = score - penalty
+            if flow_score > best_flow_score:
+                best_flow_score = flow_score
+                best_idx = i
+                
+        current_track = pool.pop(best_idx)
+        result.append(current_track)
+        
+        # Update artist history window (Keep last 10 artists)
+        for a in current_track.get("Artist", "").split(", "):
+            recent_artists.append(a)
+        if len(recent_artists) > 10:
+            recent_artists = recent_artists[-10:]
+            
+    return result
+
+def auto_select_sort(tracks_data):
+    n = len(tracks_data)
+    if n < 30:
+        return apply_hit_interleave_sort(tracks_data), "Hit Interleave (Short Playlist)"
+        
+    scores = [t.get("Algorithm Score 🏅", 0) for t in tracks_data]
+    if not scores: return tracks_data, "None"
+    
+    variance = max(scores) - min(scores)
+    
+    all_artists = set()
+    for t in tracks_data:
+        for a in t.get("Artist", "").split(", "):
+            all_artists.add(a)
+    
+    density = n / max(1, len(all_artists))
+    
+    if density > 3.0:
+        return apply_csp_flow_sort(tracks_data), "Optimize for Flow (High Artist Density)"
+    elif variance > 50 and n >= 80:
+        return apply_rollercoaster_wave_sort(tracks_data), "The Rollercoaster (High Variance)"
+    else:
+        return apply_hit_interleave_sort(tracks_data), "Hit Interleave (Balanced)"
+
 with tab5:
     st.header("🌟 Phase 5: SEO & Popularity Optimizer")
-    st.markdown("Analyze track popularity and optimize the top of your playlists to reduce skip rates.")
+    st.markdown("Analyze track popularity and optimize the top of your playlists to reduce skip rates. Advanced multi-year ranking algorithms combat 'recency bias'.")
     
     if 'seo_tracks' not in st.session_state:
         st.session_state['seo_tracks'] = []
     if 'seo_playlist_id' not in st.session_state:
         st.session_state['seo_playlist_id'] = None
+    if 'seo_method' not in st.session_state:
+        st.session_state['seo_method'] = "1. Spotify Native (Track Popularity Only)"
         
     st.subheader("1. Track Popularity Analyzer")
-    seo_target_name = st.selectbox("Select Master Playlist to Analyze:", options=list(TARGET_PLAYLISTS.keys()))
+    col_seo1, col_seo2 = st.columns(2)
+    with col_seo1:
+        seo_target_name = st.selectbox("Select Master Playlist to Analyze:", options=list(TARGET_PLAYLISTS.keys()))
+    with col_seo2:
+        algo_choice = st.selectbox("Select Ranking Algorithm:", [
+            "1. Spotify Native (Track Popularity Only) - Favors Hits",
+            "2. Era Hybrid (Track 60% + Artist 40%) - Balanced",
+            "3. Logarithmic Momentum (Track + Artist + Age) - Long Term"
+        ], help="Approach 2 & 3 protect older hits from being buried by brand new mediocre tracks.")
     
     if st.button("🔍 Analyze Track Popularity"):
         selected_id = TARGET_PLAYLISTS[seo_target_name]
-        with st.spinner("Fetching tracks and popularity metrics..."):
+        with st.spinner("Fetching tracks, artist metrics, and release dates..."):
             tracks = get_all_playlist_tracks(sp, selected_id)
+            
+            # --- CURATOR OVERRIDE INIT ---
+            favorites_playlist_id = "1X44CiyGrShr6ro8N1hGI6"
+            try:
+                st.info("Cross-referencing tracks against 'S3 My Favorite' for Curator Boosts...")
+                f_tracks = get_all_playlist_tracks(sp, favorites_playlist_id)
+                fav_uris = {item['track']['uri'] for item in f_tracks if item.get('track') and item['track'].get('uri')}
+            except Exception as e:
+                fav_uris = set()
+                
+            needs_advanced_metrics = "Native" not in algo_choice
+            
+            artist_cache = {}
+            if needs_advanced_metrics:
+                st.info("Advanced Algorithm selected: Fetching deep artist metrics...")
+                
+                # Setup Artist JSON Cache
+                cache_file = "artist_popularity_cache.json"
+                if os.path.exists(cache_file):
+                    try:
+                        with open(cache_file, "r") as f:
+                            artist_cache = json.load(f)
+                    except json.JSONDecodeError:
+                        artist_cache = {}
+                else:
+                    artist_cache = {}
+                    
+                all_artist_ids = []
+                for item in tracks:
+                    t = item.get('track')
+                    if t and t.get('artists') and t['artists'][0].get('id'):
+                        all_artist_ids.append(t['artists'][0]['id']) # Just grab the primary artist
+                
+                unique_artist_ids = list(set([aid for aid in all_artist_ids if aid]))
+                
+                # Determine which artists are missing from the local JSON cache
+                missing_artist_ids = [aid for aid in unique_artist_ids if aid not in artist_cache]
+                cached_count = len(unique_artist_ids) - len(missing_artist_ids)
+                
+                if missing_artist_ids:
+                    st.info(f"Targeting {len(unique_artist_ids)} unique artists. Loading {cached_count} from cache, fetching {len(missing_artist_ids)} new artists from Spotify API...")
+                    # Fetch artist info in batches of 50 to respect rate limits
+                    new_fetches = 0
+                    for chunk in chunk_list(missing_artist_ids, 50):
+                        try:
+                            time.sleep(0.2) # Small safety delay
+                            artists_data = sp.artists(chunk)
+                            for a in artists_data['artists']:
+                                if a:
+                                    artist_cache[a['id']] = a['popularity']
+                                    new_fetches += 1
+                        except Exception as e:
+                            print(f"Error fetching artist batch: {e}")
+                            st.warning("Rate limit hit or API error on Artist fetch. Partial data used.")
+                            
+                    # Save updated cache to disk
+                    if new_fetches > 0:
+                        try:
+                            with open(cache_file, "w") as f:
+                                json.dump(artist_cache, f)
+                        except Exception as e:
+                            print(f"Failed to save artist cache: {e}")
+                else:
+                    st.success(f"All {len(unique_artist_ids)} unique artists loaded instantly from local cache! ⚡")
+            
+            # --- AUDIO FEATURES INIT ---
+            st.info("Fetching Audio Features (Energy, Key, Mode) for Harmonic Mixing...")
+            track_uris_for_audio = [item['track']['uri'] for item in tracks if item.get('track') and item['track'].get('uri') and not item['track']['uri'].startswith('spotify:local:')]
+            audio_data_map = fetch_audio_features_with_cache(sp, track_uris_for_audio)
+            
+            import math
+            current_date = datetime.now()
             
             seo_data = []
             for idx, item in enumerate(tracks):
                 t = item.get('track')
                 if t and t.get('uri') and not t['uri'].startswith('spotify:local:'):
+                    
+                    track_pop = t.get('popularity', 0)
+                    artist_id = t['artists'][0]['id'] if t.get('artists') else None
+                    artist_pop = artist_cache.get(artist_id, 50) if needs_advanced_metrics else 0
+                    
+                    # Calculate Age in Months
+                    months_age = 0
+                    if needs_advanced_metrics and t.get('album') and t['album'].get('release_date'):
+                        rd = t['album']['release_date']
+                        try:
+                            # Handle different format "YYYY", "YYYY-MM", "YYYY-MM-DD"
+                            if len(rd) == 4:
+                                release_dt = datetime.strptime(rd, "%Y")
+                            elif len(rd) == 7:
+                                release_dt = datetime.strptime(rd, "%Y-%m")
+                            else:
+                                release_dt = datetime.strptime(rd, "%Y-%m-%d")
+                            
+                            delta = current_date - release_dt
+                            months_age = max(0, delta.days // 30)
+                        except Exception:
+                            months_age = 12 # Default fake age on parse error
+                            
+                    # --- CALCULATE SCORES ---
+                    score_native = track_pop
+                    
+                    capped_age = min(months_age, 60)
+                    # Approach 1: Era Hybrid (Track 50, Artist 30, Age 20)
+                    score_era = (track_pop * 0.5) + (artist_pop * 0.3) + (capped_age * 0.2)
+                    
+                    # Approach 3: Log Momentum
+                    score_log = math.log10(track_pop + 1) * (1 + (artist_pop / 100)) + math.log(months_age + 1)
+                    
+                    # Determine final sorting score based on user choice
+                    if "Native" in algo_choice:
+                        final_score = score_native
+                    elif "Era" in algo_choice:
+                        final_score = round(score_era, 1)
+                    else:
+                        final_score = round(score_log, 2)
+                        
+                    # --- CURATOR OVERRIDE (BOOST MULTIPLIER) ---
+                    is_favorite = t['uri'] in fav_uris
+                    if is_favorite:
+                        final_score = round(final_score * 1.4, 2)
+                        
+                    # --- AUDIO FEATURES MAPPING ---
+                    t_uri = t['uri']
+                    audio_ft = audio_data_map.get(t_uri, {"energy": 0.5, "key": 0, "mode": 1})
+                    t_energy = audio_ft.get("energy", 0.5)
+                    t_key = audio_ft.get("key", 0)
+                    t_mode = audio_ft.get("mode", 1)
+                    
+                    # Map to Camelot Wheel String (e.g., '8A')
+                    camelot_code = CAMELOT_DICT.get((t_key, t_mode), "Unknown")
+                    
                     seo_data.append({
-                        "Current Order Index": idx + 1,
+                        "Original #": idx + 1,
                         "Track Name": t.get('name', 'Unknown'),
                         "Artist": ", ".join(a.get('name', 'Unknown') for a in t.get('artists', [])),
-                        "Popularity": t.get('popularity', 0),
-                        "URI": t['uri']
+                        "Algorithm Score 🏅": final_score,
+                        "Energy ⚡": round(t_energy, 2),
+                        "Camelot 🎵": camelot_code,
+                        "Curator Boost 💖": "Yes (1.4x)" if is_favorite else "No",
+                        "Native Track Pop": track_pop,
+                        "Artist Pop": artist_pop if needs_advanced_metrics else "N/A",
+                        "Months Old": months_age if needs_advanced_metrics else "N/A",
+                        "Key": t_key,
+                        "Mode": t_mode,
+                        "URI": t_uri
                     })
+            
+            # --- GLOBAL MIN-MAX SCALING (0-100) ---
+            if seo_data:
+                raw_scores = [d["Algorithm Score 🏅"] for d in seo_data]
+                min_score = min(raw_scores)
+                max_score = max(raw_scores)
+                
+                for d in seo_data:
+                    raw = d["Algorithm Score 🏅"]
+                    if max_score > min_score:
+                        d["Algorithm Score 🏅"] = round(((raw - min_score) / (max_score - min_score)) * 100, 1)
+                    else:
+                        d["Algorithm Score 🏅"] = 100.0
             
             st.session_state['seo_tracks'] = seo_data
             st.session_state['seo_playlist_id'] = selected_id
-            st.success(f"Successfully analyzed {len(seo_data)} tracks in {seo_target_name}!")
+            st.session_state['seo_method'] = algo_choice
+            st.success(f"Successfully analyzed {len(seo_data)} tracks using '{algo_choice.split('(')[0].strip()}'!")
             time.sleep(1)
             st.rerun()
             
     if st.session_state['seo_tracks']:
-        st.dataframe(pd.DataFrame(st.session_state['seo_tracks']), use_container_width=True)
-        
+        st.info(f"Currently viewing analysis based on: **{st.session_state['seo_method']}**")
         st.divider()
-        st.subheader("2. SEO Playlist Optimizer (Top Tracks First)")
-        st.markdown("Re-order the playlist by bringing the most popular tracks to the top while keeping the rest in their original order.")
+        st.subheader("2. Playlist Sequencing & Optimizer")
+        st.markdown("Select a strategy below to preview the expected playlist sequence. Once satisfied, execute the reorder.")
         
-        top_x = st.slider("Select number of top popular tracks to pin to the top:", min_value=5, max_value=20, value=10, step=1)
+        seq_strategy = st.radio("Select Sequence Strategy:", [
+            "Pin Top X Tracks Only",
+            "The Rollercoaster (Energy Arcs)",
+            "Hit Interleave (Anchor Discovery)",
+            "Optimize for Flow (Anti-Clumping)",
+            "🤖 Auto-Select Best Strategy"
+        ])
         
-        if st.button("🚀 Optimize Playlist Order (SEO)", type="primary"):
+        current_tracks = st.session_state['seo_tracks']
+        
+        if seq_strategy == "Pin Top X Tracks Only":
+            top_x = st.slider("Select number of tracks to pin to the top:", min_value=5, max_value=50, value=20, step=1)
+            # Preview Logic
+            sorted_by_score = sorted(current_tracks, key=lambda x: x["Algorithm Score 🏅"], reverse=True)
+            top_x_tracks = sorted_by_score[:top_x]
+            top_x_uris = [t["URI"] for t in top_x_tracks]
+            remaining = [t for t in current_tracks if t["URI"] not in top_x_uris]
+            preview_tracks = top_x_tracks + remaining
+        else:
+            st.info("The algorithm will mathematically sequence the entire length of the playlist automatically.")
+            top_x = 0
+            # Preview Logic
+            if "Rollercoaster" in seq_strategy:
+                preview_tracks = apply_rollercoaster_wave_sort(current_tracks)
+            elif "Interleave" in seq_strategy:
+                preview_tracks = apply_hit_interleave_sort(current_tracks)
+            elif "Flow" in seq_strategy:
+                preview_tracks = apply_csp_flow_sort(current_tracks)
+            else: # Auto
+                preview_tracks, chosen = auto_select_sort(current_tracks)
+                st.info(f"Auto-Select previewing via: {chosen}")
+        
+        df_preview = pd.DataFrame(preview_tracks)
+        # We don't need to re-sort here, because preview_tracks is already in the final order
+        # Re-inject viewing index
+        df_preview.insert(0, "New Order #", range(1, 1 + len(df_preview)))
+        
+        st.dataframe(df_preview, use_container_width=True)
+        
+        
+        if st.button("🚀 Push Sequence to Spotify (Execute Reorder)", type="primary"):
             with st.spinner("Reordering playlist..."):
                 playlist_id = st.session_state['seo_playlist_id']
-                current_tracks = st.session_state['seo_tracks']
-                
-                # Sort descending by popularity
-                sorted_by_pop = sorted(current_tracks, key=lambda x: x["Popularity"], reverse=True)
-                top_x_tracks = sorted_by_pop[:top_x]
-                
-                # Get the URIs
-                top_x_uris = [t["URI"] for t in top_x_tracks]
-                
-                # Get the remaining URIs in their ORIGINAL order
-                remaining_uris = [t["URI"] for t in current_tracks if t["URI"] not in top_x_uris]
-                
-                # Combine
-                optimized_uris = top_x_uris + remaining_uris
+                # We already calculated the exact final list in `preview_tracks`
+                optimized_uris = [t["URI"] for t in preview_tracks]
+                if seq_strategy == "Pin Top X Tracks Only":
+                    msg = f"Playlist optimized! Pinned top {top_x} tracks to the head."
+                else:
+                    msg = f"Playlist fully sequenced using '{seq_strategy}' algorithm!"
                 
                 # Execute replacement
                 if not optimized_uris:
@@ -1024,7 +1558,8 @@ with tab5:
                 st.session_state['seo_tracks'] = []
                 st.session_state['seo_playlist_id'] = None
                 
-                st.success(f"Playlist opening has been optimized for SEO! Pinned top {top_x} tracks.")
+                
+                st.success(msg)
                 time.sleep(2)
                 st.rerun()
 
@@ -1096,6 +1631,7 @@ with tab6:
                             time.sleep(0.15)
                         st.session_state["rename_index"] += len(batch)
                         st.success("Batch renamed successfully!")
+                        get_all_user_playlists.clear()
                         time.sleep(1)
                         st.rerun()
             with col2:
@@ -1128,7 +1664,7 @@ with tab7:
     if "p7_dest_id" not in st.session_state:
         st.session_state["p7_dest_id"] = None
         
-    all_user_playlists_p7 = get_all_user_playlists(sp)
+    all_user_playlists_p7 = st.session_state['global_playlists']
     playlist_options_p7 = {p['name']: p['id'] for p in all_user_playlists_p7}
     
     col1, col2 = st.columns(2)
