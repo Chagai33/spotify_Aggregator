@@ -17,10 +17,12 @@ from views.tab_5_seo import render_tab5
 from views.tab_6_rename import render_tab6
 from views.tab_7_orphans import render_tab7
 
+from views.tab_8_visibility import render_tab8
+
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Spotify Curator Tool", page_icon="🎵", layout="wide")
 
-st.title("🎵 Comprehensive Curator Aggregator (Phase 1-7)")
+st.title("🎵 Comprehensive Curator Aggregator (Phase 1-8)")
 
 # --- INITIALIZE SESSION STATE ---
 init_session_state()
@@ -38,14 +40,15 @@ else:
             st.session_state['global_playlists'] = get_all_user_playlists(sp_client)
 
     # --- RENDER TABS ---
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "Phase 1: Migration Engine",
         "Phase 2: Cleanup",
         "Phase 3: Backup",
         "Phase 4: Insights",
         "Phase 5: SEO & Sequencer",
         "Phase 6: Rename",
-        "Phase 7: Orphans"
+        "Phase 7: Orphans",
+        "Phase 8: Profile Visibility"
     ])
 
     from core.spotify_client import get_target_source_playlists
@@ -70,3 +73,6 @@ else:
         
     with tab7:
         render_tab7(sp_client)
+
+    with tab8:
+        render_tab8(sp_client)
