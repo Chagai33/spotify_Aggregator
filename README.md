@@ -1,5 +1,7 @@
 # Aum.Music - Spotify ETL Pipeline & Season Aggregator 🎧
 
+> 📖 **Deep Dive:** Want to see the math and logic behind the engine? Check out the [Architecture & Algorithms Documentation](docs/ARCHITECTURE.md).
+
 ## 🎵 About the Aum.Music Project
 Aum.Music is a comprehensive music curation project that has been running continuously for 298 weeks.
 Every week, I scan all new releases from the artists I follow, filter out full albums and duplicate versions, and listen to approximately 500 new tracks. From these, I meticulously handpick the top 10 to 40 tracks and release them as a weekly Spotify playlist.
@@ -24,10 +26,10 @@ This tool successfully identified historical typos, improved the accuracy of the
 *   **🛡️ Mutual Exclusion Engine:** A smart routing algorithm that ensures hermetic separation between sub-genres. For example, it automatically blocks tracks identified as "Mizrahi" or "Israeli Hip Hop" from being appended to the broader "Israeli Music" master playlist.
 *   **🚦 Controlled Workflow (Preview -> Approve):** Migrations are not executed blindly. The system runs simulations in batches (e.g., 5 or 10 playlists), displaying a transparent Preview DataFrame showing exactly which track goes to which playlist. Only after human approval does it execute the API POST requests to Spotify.
 *   **📦 Backup & Restore (Rollback Plan):** A built-in risk management system. Before any run, it generates a JSON snapshot of all target playlists. In case of an error, a single "Danger" button safely wipes and restores the Spotify playlists to their exact previous state handling API rate limits natively.
-*   **🧹 Cross-Playlist Cleanup Utility:** An isolated helper tool to dynamically detect, verify, and delete overlapping tracks between any two given playlists to maintain pristine curation.
+*   **🧹 Cross-Playlist Cleanup Utility:** An isolated helper tool to dynamically detect, verify, and delete overlapping tracks between any two given playlists. Upgraded with an interactive data grid allowing for granular, surgical track exclusions before execution.
 *   **📥 DLQ (Dead Letter Queue) Routing:** Any tracks with unmapped or unrecognized genres are automatically routed to a designated "Triage/Catch-All" playlist for manual review, ensuring zero data loss.
 *   **📊 Global Playlists Insights:** A module built with a local JSON cache to rapidly analyze and display metadata (followers, collaborative status, public status, track counts) across the user's entire library without hitting Spotify's API rate limits. 
-*   **🌟 SEO & Popularity Optimizer:** Evaluates track popularity (0-100) using Spotify's official metrics and allows "pinning" the most popular tracks to the top of any playlist to boost listener retention and organic search rank.
+*   **🌟 Advanced Algorithmic Sequencing:** Evaluates track popularity, extracts Spotify Audio Features (Energy, Camelot Key, Mode), and feeds them into 3 distinct sequencing algorithms: *The Rollercoaster*, *Hit Interleave*, and *Flow Optimizer*. It normalizes scores (`0-100`) and applies a *Curator Boost* (1.4x) to tracks found in your "S3 My Favorite" playlist, ensuring a professional, fatigue-free listener flow instead of naive sorting.
 
 ## 📸 Screenshots
 ![Checksum Validator](./assets/checksum_validator.png)
@@ -37,7 +39,7 @@ This tool successfully identified historical typos, improved the accuracy of the
 ## 🛠️ Tech Stack
 *   **Python 3**
 *   **Streamlit:** For building the 5-tab interactive dashboard, managing Session State, and providing visual feedback (DataFrames, Progress Bars).
-*   **Spotipy:** For interacting with the Spotify Web API, handling OAuth2 Authentication, fetching paginated playlists, and chunking API requests to avoid `429 Too Many Requests` errors.
+*   **Spotify Web API & Spotipy:** Handles OAuth2, paginated fetching, and Audio Features extraction. Engineered with strict `status_retries=0` and global Session State caching to bypass devastating HTTP 429 timeouts and memory pickling freezes.
 *   **Pandas:** For structuring audit logs, processing overlapping arrays, and exporting cumulative CSV reports.
 *   **Regex (re):** For fault-tolerant parsing of messy, human-typed playlist descriptions.
 
