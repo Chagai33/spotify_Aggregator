@@ -5,7 +5,7 @@ import config.settings
 
 # 2. Core Initializations
 from core.state_manager import init_session_state
-from core.auth import enforce_authentication
+from core.auth import enforce_authentication, is_env_configured
 from core.spotify_client import get_all_user_playlists
 
 # 3. Import Views
@@ -27,11 +27,28 @@ st.title("🎵 Comprehensive Curator Aggregator (Phase 1-8)")
 # --- INITIALIZE SESSION STATE ---
 init_session_state()
 
-# --- AUTHENTICATION ---
-sp_client = enforce_authentication()
+# --- AUTHENTICATION & SIDEBAR UI ---
+st.sidebar.markdown("### 🔌 System Status")
 
+env_status = is_env_configured()
+sp_client = enforce_authentication() if env_status else None
+
+# Render status in the sidebar
+if not env_status:
+    st.sidebar.error("❌ **Spotify API: Disconnected**\n\nMissing or default variables in `.env`.")
+elif not sp_client:
+    st.sidebar.warning("⚠️ **Spotify API: Pending Login**\n\nWaiting for Spotify OAuth.")
+else:
+    st.sidebar.success("✅ **Spotify API: Connected**")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("Aum.Music Engineering")
+
+# --- GUARD ALL SUBSEQUENT API CALLS ---
 if not sp_client:
-    st.info("Please log in to Spotify to continue.")
+    if not env_status:
+        st.error("🚨 **Spotify API credentials missing or invalid.**")
+        st.info("Please fill out your `.env` file with `SPOTIPY_CLIENT_ID`, `SPOTIPY_CLIENT_SECRET`, and `SPOTIPY_REDIRECT_URI` then restart the app.")
     st.stop()
 else:
     # --- LOAD GLOBAL DATA (IF NEEDED ACROSS TABS) ---
