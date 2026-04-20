@@ -29,7 +29,22 @@ def render_tab5(sp):
     st.subheader("1. Track Popularity Analyzer")
     col_seo1, col_seo2 = st.columns(2)
     with col_seo1:
-        seo_target_name = st.selectbox("Select Master Playlist to Analyze:", options=list(TARGET_PLAYLISTS.keys()))
+        seo_input_type = st.radio("Select Playlist Source:", ["Master Playlists", "Custom ID/URL"], horizontal=True)
+        if seo_input_type == "Master Playlists":
+            seo_target_name = st.selectbox("Select Master Playlist to Analyze:", options=list(TARGET_PLAYLISTS.keys()))
+            selected_id_input = TARGET_PLAYLISTS.get(seo_target_name)
+        else:
+            custom_input = st.text_input("Enter Playlist ID or URL:")
+            if custom_input:
+                if "playlist/" in custom_input:
+                    selected_id_input = custom_input.split("playlist/")[1].split("?")[0]
+                elif "spotify:playlist:" in custom_input:
+                    selected_id_input = custom_input.split("spotify:playlist:")[1]
+                else:
+                    selected_id_input = custom_input.strip()
+            else:
+                selected_id_input = None
+                
     with col_seo2:
         algo_choice = st.selectbox("Select Ranking Algorithm:", [
             "1. Spotify Native (Track Popularity Only) - Favors Hits",
@@ -38,7 +53,11 @@ def render_tab5(sp):
         ], help="Approach 2 & 3 protect older hits from being buried by brand new mediocre tracks.")
     
     if st.button("🔍 Analyze Track Popularity"):
-        selected_id = TARGET_PLAYLISTS[seo_target_name]
+        if not selected_id_input:
+            st.error("Please select or enter a valid playlist ID/URL.")
+            st.stop()
+            
+        selected_id = selected_id_input
         with st.spinner("Fetching tracks, artist metrics, and release dates..."):
             tracks = get_all_playlist_tracks(sp, selected_id)
             
@@ -267,19 +286,22 @@ def render_tab5(sp):
                     msg = f"Playlist fully sequenced using '{seq_strategy}' algorithm!"
                 
                 # Execute replacement
-                if not optimized_uris:
-                    sp.playlist_replace_items(playlist_id, [])
-                else:
-                    sp.playlist_replace_items(playlist_id, optimized_uris[:100])
-                    time.sleep(0.5)
-                    
-                    for chunk in chunk_list(optimized_uris[100:], 100):
-                        sp.playlist_add_items(playlist_id, chunk)
+                try:
+                    if not optimized_uris:
+                        sp.playlist_replace_items(playlist_id, [])
+                    else:
+                        sp.playlist_replace_items(playlist_id, optimized_uris[:100])
                         time.sleep(0.5)
                         
-                st.session_state['seo_tracks'] = []
-                st.session_state['seo_playlist_id'] = None
-                
-                st.success(msg)
-                time.sleep(2)
-                st.rerun()
+                        for chunk in chunk_list(optimized_uris[100:], 100):
+                            sp.playlist_add_items(playlist_id, chunk)
+                            time.sleep(0.5)
+                            
+                    st.session_state['seo_tracks'] = []
+                    st.session_state['seo_playlist_id'] = None
+                    
+                    st.success(msg)
+                    time.sleep(2)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to update playlist. Ensure you have edit permissions for this custom playlist. Error: {e}")
